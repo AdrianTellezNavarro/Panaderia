@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Panadería La Desesperanza</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #fff8f0; }
+    .pan-card img { height: 150px; object-fit: cover; }
+  </style>
+</head>
+<body>
+  <div class="container py-4">
+    <h1 class="text-center text-danger">Panadería La Desesperanza</h1>
+    <p class="text-center">Temporada de hdtpm: Temporada de hora de tragar pan de muerto </p>
+
+    <!-- Formulario -->
+    <form id="panForm" class="row g-3">
+      <input type="hidden" id="panId">
+      <input type="hidden" id="imagenBase64">
+      <div class="col-md-4">
+        <input type="text" id="nombre" class="form-control" placeholder="Nombre del pan" required>
+      </div>
+      <div class="col-md-4">
+        <input type="text" id="descripcion" class="form-control" placeholder="Descripción">
+      </div>
+      <div class="col-md-2">
+        <input type="number" id="precio" class="form-control" placeholder="Precio" required>
+      </div>
+      <div class="col-md-2">
+        <input type="file" id="imagenFile" class="form-control" accept="image/*" required>
+      </div>
+      <div class="col-12 text-end">
+        <button type="submit" class="btn btn-success">Guardar</button>
+      </div>
+    </form>
+
+    <div id="galeria" class="row mt-4"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('panForm');
+    const galeria = document.getElementById('galeria');
+    const imagenFile = document.getElementById('imagenFile');
+    const imagenBase64 = document.getElementById('imagenBase64');
+
+    imagenFile.addEventListener('change', () => {
+      const file = imagenFile.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = reader.result.split(',')[1];
+          imagenBase64.value = base64;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const nombre = form.nombre.value.trim();
+      const precio = parseFloat(form.precio.value);
+      const imagen = imagenBase64.value;
+      if (!nombre || isNaN(precio) || !imagen) {
+        alert('Nombre, precio e imagen son obligatorios');
+        return;
+      }
+
+      const pan = {
+        nombre,
+        descripcion: form.descripcion.value,
+        precio,
+        imagen
+      };
+
+      const id = form.panId.value;
+      const method = id ? 'PUT' : 'POST';
+      const url = id ? `/inventario/${id}` : '/inventario';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pan)
+      });
+
+      if (res.ok) {
+        form.reset();
+        form.panId.value = '';
+        imagenBase64.value = '';
+        cargarPanes();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Error en el servidor');
+      }
+    });
+
+    async function cargarPanes() {
+      const res = await fetch('/inventario');
+      const panes = await res.json();
+      galeria.innerHTML = '';
+      panes.forEach(pan => {
+        galeria.innerHTML += `
+          <div class="col-md-4 mb-3">
+            <div class="card pan-card">
+              <img src="data:image/jpeg;base64,${pan.imagen}" class="card-img-top" alt="${pan.nombre}">
+              <div class="card-body">
+                <h5 class="card-title">${pan.nombre}</h5>
+                <p class="card-text">${pan.descripcion}</p>
+                <p class="text-success">$${pan.precio}</p>
+                <button class="btn btn-warning btn-sm" onclick="editarPan(${pan.id})">Editar</button>
+                <button class="btn btn-danger btn-sm" onclick="eliminarPan(${pan.id})">Eliminar</button>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    async function editarPan(id) {
+      const res = await fetch(`/inventario`);
+      const panes = await res.json();
+      const pan = panes.find(p => p.id === id);
+      if (pan) {
+        form.nombre.value = pan.nombre;
+        form.descripcion.value = pan.descripcion;
+        form.precio.value = pan.precio;
+        form.panId.value = pan.id;
+        imagenBase64.value = pan.imagen;
+      }
+    }
+
+    async function eliminarPan(id) {
+      if (confirm('¿Eliminar este pan?')) {
+        await fetch(`/inventario/${id}`, { method: 'DELETE' });
+        cargarPanes();
+      }
+    }
+
+    cargarPanes();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
