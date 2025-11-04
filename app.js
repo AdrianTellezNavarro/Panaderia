@@ -47,12 +47,11 @@ function requiereAdmin(req, res, next) {
   next();
 }
 
-app.post('/registro', async (req, res) => {
+app.post('/registro', (req, res) => {
   const { nombre, correo, contraseña } = req.body;
   if (!nombre || !correo || !contraseña) return res.status(400).json({ error: 'Todos los campos son obligatorios' });
 
-  const hash = await bcrypt.hash(contraseña, 10);
-  db.query('INSERT INTO usuarios (nombre, correo, contraseña) VALUES (?, ?, ?)', [nombre, correo, hash], (err) => {
+  db.query('INSERT INTO usuarios (nombre, correo, contraseña) VALUES (?, ?, ?)', [nombre, correo, contraseña], (err) => {
     if (err) {
       if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Correo ya registrado' });
       return res.status(500).json({ error: 'Error en el servidor' });
@@ -65,19 +64,19 @@ app.post('/login', (req, res) => {
   const { correo, contraseña } = req.body;
   if (!correo || !contraseña) return res.status(400).json({ error: 'Correo y contraseña requeridos' });
 
-  db.query('SELECT * FROM usuarios WHERE correo = ?', [correo], async (err, results) => {
+  db.query('SELECT * FROM usuarios WHERE correo = ?', [correo], (err, results) => {
     if (err) return res.status(500).json({ error: 'Error en el servidor' });
     if (results.length === 0) return res.status(401).json({ error: 'Usuario no encontrado' });
 
     const usuario = results[0];
-    const match = await bcrypt.compare(contraseña, usuario.contraseña);
-    if (!match) return res.status(401).json({ error: 'Contraseña incorrecta' });
+    if (usuario.contraseña !== contraseña) return res.status(401).json({ error: 'Contraseña incorrecta' });
 
     req.session.usuarioId = usuario.id;
     req.session.esAdmin = correo === 'admin@panaderia.com' && contraseña === 'admin123';
     res.json({ mensaje: 'Sesión iniciada' });
   });
 });
+
 
 app.post('/logout', (req, res) => {
   req.session.destroy(err => {
