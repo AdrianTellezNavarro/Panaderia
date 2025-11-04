@@ -70,7 +70,8 @@ app.post('/login', (req, res) => {
     if (results.length === 0) return res.status(401).json({ error: 'Usuario no encontrado' });
 
     const usuario = results[0];
-    if (usuario.contraseña !== contraseña) return res.status(401).json({ error: 'Contraseña incorrecta' });
+    const match = await bcrypt.compare(contraseña, usuario.contraseña);
+    if (!match) return res.status(401).json({ error: 'Contraseña incorrecta' });
 
     req.session.usuarioId = usuario.id;
     req.session.esAdmin = correo === 'admin@panaderia.com' && contraseña === 'admin123';
