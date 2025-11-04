@@ -19,21 +19,25 @@
     
 
     <div id="auth" class="mb-4">
-      <form id="loginForm" class="row g-3">
-        <div class="col-md-3">
-          <input type="text" id="nombre" class="form-control" placeholder="Nombre completo" required>
-        </div>
-        <div class="col-md-3">
-          <input type="email" id="correo" class="form-control" placeholder="Correo" required>
-        </div>
-        <div class="col-md-3">
-          <input type="password" id="contraseña" class="form-control" placeholder="Contraseña" required>
-        </div>
-        <div class="col-md-3 d-flex gap-2">
-          <button type="submit" class="btn btn-primary">Iniciar sesión</button>
-          <button type="button" id="registroBtn" class="btn btn-secondary">Registrarse</button>
-        </div>
-      </form>
+      <form id="loginForm" class="row g-3" autocomplete="off">
+  <div class="col-md-3">
+    <input type="text" id="nombre" class="form-control" placeholder="Nombre completo" required
+      pattern="^[a-zA-ZÁÉÍÓÚáéíóúñÑ\s]{2,50}$"
+      title="Solo letras y espacios, mínimo 2 caracteres">
+  </div>
+  <div class="col-md-3">
+    <input type="email" id="correo" class="form-control" placeholder="Correo electrónico" required>
+  </div>
+  <div class="col-md-3">
+    <input type="password" id="contraseña" class="form-control" placeholder="Contraseña" required
+      minlength="6" maxlength="50"
+      title="Mínimo 6 caracteres">
+  </div>
+  <div class="col-md-3 d-flex gap-2">
+    <button type="submit" class="btn btn-primary">Iniciar sesión</button>
+    <button type="button" id="registroBtn" class="btn btn-secondary">Registrarse</button>
+  </div>
+</form>
     </div>
 
     <div id="panaderia">
