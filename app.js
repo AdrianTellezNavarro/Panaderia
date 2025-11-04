@@ -235,11 +235,15 @@ app.get('/carrito/total', requiereSesion, (req, res) => {
 
 app.delete('/carrito/pagar', requiereSesion, (req, res) => {
   const usuario_id = req.session.usuarioId;
-  db.query('DELETE FROM carrito WHERE usuario_id = ?', [usuario_id], (err) => {
+  db.query('DELETE FROM carrito WHERE usuario_id = ?', [usuario_id], (err, result) => {
     if (err) return res.status(500).json({ error: 'Error al pagar el carrito' });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'No había productos en el carrito' });
+    }
     res.json({ mensaje: 'Productos pagados :)' });
   });
 });
+
 
 
 app.listen(3000, () => {
