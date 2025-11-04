@@ -302,14 +302,13 @@
     document.getElementById('pagarCarritoBtn').addEventListener('click', async () => {
       if (!confirm('¿Confirmas el pago del carrito?')) return;
 
-      const res = await fetch('/carrito/pagar', {
-        method: 'DELETE',
-        credentials: 'include'
-      });
-
-      const data = await res.json();
-      alert(data.mensaje || data.error || 'Productos pagados :)');
-      cargarCarrito();
+        const res = await fetch('/carrito/pagar', {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+        const data = await res.json();
+        console.log('Respuesta del backend:', data);
+        alert(data.mensaje || data.error || JSON.stringify(data));
     });
 
 
