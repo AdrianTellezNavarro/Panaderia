@@ -178,7 +178,7 @@ app.get('/carrito', requiereSesion, (req, res) => {
     SELECT c.id, p.nombre, p.precio, c.cantidad
     FROM carrito c
     JOIN productos p ON c.producto_id = p.id
-    WHERE c.usuario_id = ?
+    WHERE c.usuario_id = ? AND c.vendido = 0
   `;
   db.query(query, [req.session.usuarioId], (err, results) => {
     if (err) return res.status(500).json({ error: err });
@@ -222,26 +222,38 @@ app.get('/carrito/total', requiereSesion, (req, res) => {
     SELECT SUM(p.precio * c.cantidad) AS total
     FROM carrito c  
     JOIN productos p ON c.producto_id = p.id
-    WHERE c.usuario_id = ?
+    WHERE c.usuario_id = ? AND c.vendido = 0
   `;
   db.query(query, [req.session.usuarioId], (err, results) => {
     if (err) return res.status(500).json({ error: err });
-    
     const total = results[0].total !== null ? parseFloat(results[0].total) : 0;
     res.json({ total });
-    
   });
 });
 
-app.delete('/carrito/pagar', requiereSesion, (req, res) => {
+app.put('/carrito/pagar', requiereSesion, (req, res) => {
   const usuario_id = req.session.usuarioId;
-  db.query('DELETE FROM carrito WHERE usuario_id = ?', [usuario_id], (err, result) => {
+  const query = 'UPDATE carrito SET vendido = 1 WHERE usuario_id = ? AND vendido = 0';
+  db.query(query, [usuario_id], (err, result) => {
     if (err) return res.status(500).json({ error: 'Error al pagar el carrito' });
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'No había productos en el carrito' });
+      return res.status(404).json({ error: 'No hay productos pendientes de pago' });
     }
     res.json({ mensaje: 'Productos pagados :)' });
   });
+});
+
+document.getElementById('pagarCarritoBtn').addEventListener('click', async () => {
+  if (!confirm('¿Confirmas el pago del carrito?')) return;
+
+  const res = await fetch('/carrito/pagar', {
+    method: 'PUT',
+    credentials: 'include'
+  });
+
+  const data = await res.json();
+  alert(data.mensaje || data.error || 'Productos pagados :)');
+  cargarCarrito();
 });
 
 
