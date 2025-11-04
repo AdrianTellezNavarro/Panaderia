@@ -243,21 +243,6 @@ app.put('/carrito/pagar', requiereSesion, (req, res) => {
   });
 });
 
-document.getElementById('pagarCarritoBtn').addEventListener('click', async () => {
-  if (!confirm('¿Confirmas el pago del carrito?')) return;
-
-  const res = await fetch('/carrito/pagar', {
-    method: 'PUT',
-    credentials: 'include'
-  });
-
-  const data = await res.json();
-  alert(data.mensaje || data.error || 'Productos pagados :)');
-  cargarCarrito();
-});
-
-
-
 app.listen(3000, () => {
   console.log('Servidor corriendo en http://localhost:3000');
 });
