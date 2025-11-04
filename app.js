@@ -49,33 +49,68 @@ function requiereAdmin(req, res, next) {
 
 app.post('/registro', (req, res) => {
   const { nombre, correo, contraseña } = req.body;
-  if (!nombre || !correo || !contraseña) return res.status(400).json({ error: 'Todos los campos son obligatorios' });
 
-  db.query('INSERT INTO usuarios (nombre, correo, contraseña) VALUES (?, ?, ?)', [nombre, correo, contraseña], (err) => {
-    if (err) {
-      if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Correo ya registrado' });
-      return res.status(500).json({ error: 'Error en el servidor' });
+  if (!nombre || !correo || !contraseña) {
+    return res.status(400).json({ error: 'Todos los campos son obligatorios' });
+  }
+
+  const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo);
+  if (!correoValido) {
+    return res.status(400).json({ error: 'Correo inválido' });
+  }
+
+  if (contraseña.length < 6) {
+    return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+  }
+
+  const nombreSeguro = nombre.replace(/<[^>]*>?/gm, '').trim();
+  if (nombreSeguro.length === 0 || /script/i.test(nombre)) {
+    return res.status(400).json({ error: 'Nombre inválido' });
+  }
+
+  db.query(
+    'INSERT INTO usuarios (nombre, correo, contraseña) VALUES (?, ?, ?)',
+    [nombreSeguro, correo, contraseña],
+    (err) => {
+      if (err) {
+        if (err.code === 'ER_DUP_ENTRY') {
+          return res.status(409).json({ error: 'Correo ya registrado' });
+        }
+        return res.status(500).json({ error: 'Error en el servidor' });
+      }
+      res.json({ mensaje: 'Registro exitoso, ahora inicia sesión' });
     }
-    res.json({ mensaje: 'Registro exitoso, ahora inicia sesión' });
-  });
+  );
 });
+
 
 app.post('/login', (req, res) => {
   const { correo, contraseña } = req.body;
-  if (!correo || !contraseña) return res.status(400).json({ error: 'Correo y contraseña requeridos' });
+
+  if (!correo || !contraseña) {
+    return res.status(400).json({ error: 'Correo y contraseña requeridos' });
+  }
+
+  const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo);
+  if (!correoValido) {
+    return res.status(400).json({ error: 'Correo inválido' });
+  }
 
   db.query('SELECT * FROM usuarios WHERE correo = ?', [correo], (err, results) => {
     if (err) return res.status(500).json({ error: 'Error en el servidor' });
     if (results.length === 0) return res.status(401).json({ error: 'Usuario no encontrado' });
 
     const usuario = results[0];
-    if (usuario.contraseña !== contraseña) return res.status(401).json({ error: 'Contraseña incorrecta' });
+    if (usuario.contraseña !== contraseña) {
+      return res.status(401).json({ error: 'Contraseña incorrecta' });
+    }
 
     req.session.usuarioId = usuario.id;
     req.session.esAdmin = correo === 'admin@panaderia.com' && contraseña === 'admin123';
     res.json({ mensaje: 'Sesión iniciada' });
   });
 });
+
 
 
 app.post('/logout', (req, res) => {
