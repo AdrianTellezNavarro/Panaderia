@@ -2,24 +2,29 @@ const express = require('express');
 const mysql = require('mysql2');
 const session = require('express-session');
 const bcrypt = require('bcrypt');
+const cors = require('cors');
 const app = express();
+
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true
+}));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
 
 app.use(session({
-  secret: 'panaderia_secreta',
+  secret: process.env.SESSION_SECRET || 'panaderia_secreta',
   resave: false,
   saveUninitialized: false
 }));
 
 const db = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: 'Admin!01',
-  database: 'panaderia_db'
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME
 });
-
 db.connect(err => {
   if (err) {
     console.error('Error de conexión:', err);
