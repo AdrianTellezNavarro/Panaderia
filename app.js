@@ -233,6 +233,15 @@ app.get('/carrito/total', requiereSesion, (req, res) => {
   });
 });
 
+app.delete('/carrito/pagar', requiereSesion, (req, res) => {
+  const usuario_id = req.session.usuarioId;
+  db.query('DELETE FROM carrito WHERE usuario_id = ?', [usuario_id], (err) => {
+    if (err) return res.status(500).json({ error: 'Error al pagar el carrito' });
+    res.json({ mensaje: 'Productos pagados :)' });
+  });
+});
+
+
 app.listen(3000, () => {
   console.log('Servidor corriendo en http://localhost:3000');
 });
