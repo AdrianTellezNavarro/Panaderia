@@ -289,18 +289,23 @@
       }
     });
 
-    function mostrarPanaderia(admin) {
-      esAdmin = admin;
-      document.getElementById('auth').style.display = 'none';
-      document.getElementById('panaderia').style.display = 'block';
-      document.getElementById('logoutBtn').style.display = 'inline-block';
-      document.getElementById('panForm').style.display = esAdmin ? 'flex' : 'none';
+function mostrarPanaderia(admin) {
+  esAdmin = admin;
+  document.getElementById('auth').style.display = 'none';
+  document.getElementById('panaderia').style.display = 'block';
+  document.getElementById('logoutBtn').style.display = 'inline-block';
+  document.getElementById('panForm').style.display = esAdmin ? 'flex' : 'none';
 
-      document.getElementById('mostrarCarritoBtn').style.display = esAdmin ? 'none' : 'inline-block';
-      document.getElementById('carritoSeccion').style.display = 'none';
+  document.getElementById('mostrarCarritoBtn').style.display = esAdmin ? 'none' : 'inline-block';
+  document.getElementById('carritoSeccion').style.display = 'none';
 
-      cargarPanes();
-    }
+  cargarPanes();
+
+  const mapDiv = document.getElementById('map');
+  mapDiv.style.display = 'block';
+  initMapa();
+  setTimeout(refrescarMapaSiOculto, 100);
+}
 
     document.getElementById('mostrarCarritoBtn').addEventListener('click', () => {
       document.getElementById('carritoSeccion').style.display = 'block';
@@ -320,13 +325,13 @@
       cargarCarrito();
     });
 
-
-    function ocultarPanaderia() {
-      esAdmin = false;
-      document.getElementById('auth').style.display = 'block';
-      document.getElementById('panaderia').style.display = 'none';
-      document.getElementById('logoutBtn').style.display = 'none';
-    }
+function ocultarPanaderia() {
+  esAdmin = false;
+  document.getElementById('auth').style.display = 'block';
+  document.getElementById('panaderia').style.display = 'none';
+  document.getElementById('logoutBtn').style.display = 'none';
+  document.getElementById('map').style.display = 'none';
+}
 
     async function verificarSesion() {
       const res = await fetch('/inventario');
