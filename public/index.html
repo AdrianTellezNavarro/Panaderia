@@ -3,12 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <title>Panadería La Desesperanza</title>
+
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
   <style>
     #carritoSeccion { display: none; }
     body { background-color: #fff8f0; }
     .pan-card img { height: 150px; object-fit: cover; }
     #panaderia, #logoutBtn { display: none; }
+    #map { height: 400px; width: 100%; }
   </style>
 </head>
 <body>
@@ -89,6 +95,8 @@
       </div>
     </div>
   </div>
+
+  <div id="map" style="height: 400px; width: 100%; margin-top:20px;"></div>
 
   <script>
     let esAdmin = false;
@@ -329,8 +337,46 @@
       }
     }
 
-    verificarSesion();
-  </script>
+  verificarSesion();
+
+  
+
+  let mapInstance = null;
+
+  function initMapa() {
+    const mapContainer = document.getElementById('map');
+    if (!mapContainer) return;
+
+    if (mapInstance) return;
+
+    const coords = [19.4326, -99.1332];
+    mapInstance = L.map('map');
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(mapInstance);
+
+    mapInstance.setView(coords, 15);
+
+    L.marker(coords).addTo(mapInstance)
+      .bindPopup('Panadería La Desesperanza 🍞')
+      .openPopup();
+  }
+
+  function refrescarMapaSiOculto() {
+    if (mapInstance) {
+      setTimeout(() => {
+        mapInstance.invalidateSize();
+      }, 50);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    initMapa();
+    refrescarMapaSiOculto();
+  });
+
+</script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
