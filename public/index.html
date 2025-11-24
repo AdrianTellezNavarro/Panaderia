@@ -277,19 +277,7 @@ function ocultarPanaderia() {
   document.getElementById('logoutBtn').style.display = 'none';
   document.getElementById('map').style.display = 'none';
 }
-
-    async function verificarSesion() {
-      const res = await fetch('/inventario');
-      if (res.ok) {
-        mostrarPanaderia(false);
-      } else {
-        ocultarPanaderia();
-      }
-    }
-
-  verificarSesion();
-
-  
+ 
 
   let mapInstance = null;
 
