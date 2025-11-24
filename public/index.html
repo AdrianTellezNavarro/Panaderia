@@ -3,105 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <title>Panadería La Desesperanza</title>
-<<<<<<< HEAD
-
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
-  <style>
-    #carritoSeccion { display: none; }
-    body { background-color: #fff8f0; }
-    .pan-card img { height: 150px; object-fit: cover; }
-    #panaderia, #logoutBtn { display: none; }
-    #map { height: 400px; width: 100%; }
-  </style>
-</head>
-<body>
-  <div class="container py-4">
-    <h1 class="text-center text-danger">Panadería La Desesperanza</h1>
-    <p class="text-center">Temporada de hdtpm: Temporada de hora de tragar pan de muerto 💀💀💀 </p>
-
-    <div id="auth" class="mb-4">
-      <form id="loginForm" class="row g-3" autocomplete="off">
-  <div class="col-md-3">
-    <input type="text" id="nombre" class="form-control" placeholder="Nombre completo" required
-      pattern="^[a-zA-ZÁÉÍÓÚáéíóúñÑ\s]{2,50}$"
-      title="Solo letras y espacios, mínimo 2 caracteres">
-  </div>
-  <div class="col-md-3">
-    <input type="email" id="correo" class="form-control" placeholder="Correo electrónico" required>
-  </div>
-  <div class="col-md-3">
-    <input type="password" id="contraseña" class="form-control" placeholder="Contraseña" required
-      minlength="6" maxlength="50"
-      title="Mínimo 6 caracteres">
-  </div>
-  <div class="col-md-3 d-flex gap-2">
-    <button type="submit" class="btn btn-primary">Iniciar sesión</button>
-    <button type="button" id="registroBtn" class="btn btn-secondary">Registrarse</button>
-  </div>
-</form>
-    </div>
-
-    <div id="panaderia">
-      <form id="panForm" class="row g-3 mb-4">
-        <input type="hidden" id="panId">
-        <input type="hidden" id="imagenBase64">
-        <div class="col-md-4">
-          <input type="text" id="nombrePan" class="form-control" placeholder="Nombre del pan" required>
-        </div>
-        <div class="col-md-4">
-          <input type="text" id="descripcion" class="form-control" placeholder="Descripción">
-        </div>
-        <div class="col-md-2">
-          <input type="number" id="precio" class="form-control" placeholder="Precio" required>
-        </div>
-        <div class="col-md-2">
-          <input type="file" id="imagenFile" class="form-control" accept="image/*" required>
-        </div>
-        <div class="col-12 text-end">
-          <button type="submit" class="btn btn-success">Guardar</button>
-        </div>
-      </form>
-
-      <div id="galeria" class="row"></div>
-
-      <div id="carritoSeccion" class="card mt-5">
-        <div class="card-header">🛒 Carrito</div>
-        <div class="card-body">
-          <table class="table table-bordered" id="tablaCarrito">
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Precio</th>
-                <th>Cantidad</th>
-                <th>Total</th>
-                <th>Acción</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-          <h4 class="text-end" id="totalCarrito">Total: $0.00</h4>
-            <div class="text-end mt-3">
-              <button id="pagarCarritoBtn" class="btn btn-success">💸 Pagar carrito</button>
-            </div>
-        </div>
-      </div>
-
-      <div class="text-end mt-3">
-        <button id="mostrarCarritoBtn" class="btn btn-outline-primary">🛒 Ver carrito</button>
-        <button id="logoutBtn" class="btn btn-outline-danger">Cerrar sesión</button>
-      </div>
-
-      <div class="mt-4 text-center">
-        <h4 class="text-primary">Visítanos</h4>
-        <div id="map" style="height: 400px; width: 100%; margin-top:20px; display:none;"></div>
-      </div>
-      
-    </div>
-=======
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -114,7 +15,6 @@
   </style>
 </head>
 <body>
-  <!-- Barra superior -->
   <nav class="navbar navbar-expand-lg">
     <div class="container-fluid">
       <a class="navbar-brand">🍞 Panadería La Desesperanza</a>
@@ -122,15 +22,12 @@
     </div>
   </nav>
 
-  <!-- Inventario -->
   <div class="container mt-4" id="panaderia">
     <h2 class="mb-4">Nuestros Panes</h2>
     <form id="panForm" class="mb-4">
-      <!-- formulario de panes -->
     </form>
     <div id="galeria" class="row"></div>
 
-    <!-- Carrito -->
     <div id="carritoSeccion" class="mt-5">
       <h3>🛒 Carrito</h3>
       <table class="table" id="tablaCarrito">
@@ -143,9 +40,7 @@
       <button id="pagarCarritoBtn" class="btn btn-success">💸 Pagar carrito</button>
     </div>
 
-    <!-- Mapa -->
     <div id="map"></div>
->>>>>>> 942b21e (Separados)
   </div>
 
   <script>
