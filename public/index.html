@@ -97,31 +97,39 @@
   </style>
 </head>
 <body>
-  <div class="container py-4">
-    <h1 class="text-center">🎄 Panadería La Desesperanza 🎅</h1>
-    <p class="text-center">✨ Temporada navideña: hora de disfrutar pan de muerto y rosca de reyes 🎁✨</p>
-
-    <div id="auth" class="mb-4">
-      <form id="loginForm" class="row g-3 bg-light p-3 rounded shadow" autocomplete="off">
-        <div class="col-md-3">
-          <input type="text" id="nombre" class="form-control" placeholder="Nombre completo" required
+<div id="auth" class="d-flex justify-content-center align-items-center" style="min-height:80vh;">
+  <div class="card shadow-lg" style="max-width: 500px; width:100%; border-radius:15px;">
+    <div class="card-header text-center bg-danger text-white" style="border-top-left-radius:15px; border-top-right-radius:15px;">
+      <h3 class="mb-0">🎄 Panadería La Desesperanza 🎅</h3>
+      <small>Accede a tu cuenta o regístrate</small>
+    </div>
+    <div class="card-body p-4">
+      <form id="loginForm" autocomplete="off">
+        <div class="mb-3">
+          <label for="nombre" class="form-label">Nombre completo</label>
+          <input type="text" id="nombre" class="form-control" placeholder="Ej. Juan Pérez" required
             pattern="^[a-zA-ZÁÉÍÓÚáéíóúñÑ\s]{2,50}$"
             title="Solo letras y espacios, mínimo 2 caracteres">
         </div>
-        <div class="col-md-3">
-          <input type="email" id="correo" class="form-control" placeholder="Correo electrónico" required>
+        <div class="mb-3">
+          <label for="correo" class="form-label">Correo electrónico</label>
+          <input type="email" id="correo" class="form-control" placeholder="ejemplo@correo.com" required>
         </div>
-        <div class="col-md-3">
-          <input type="password" id="contraseña" class="form-control" placeholder="Contraseña" required
-            minlength="6" maxlength="50"
-            title="Mínimo 6 caracteres">
+        <div class="mb-3">
+          <label for="contraseña" class="form-label">Contraseña</label>
+          <input type="password" id="contraseña" class="form-control" placeholder="Mínimo 6 caracteres" required minlength="6" maxlength="50">
         </div>
-        <div class="col-md-3 d-flex gap-2">
-          <button type="submit" class="btn btn-primary">🎁 Iniciar sesión</button>
-          <button type="button" id="registroBtn" class="btn btn-secondary">🎄 Registrarse</button>
+        <div class="d-grid gap-2">
+          <button type="submit" class="btn btn-danger">🎁 Iniciar sesión</button>
+          <button type="button" id="registroBtn" class="btn btn-outline-success">🎄 Registrarse</button>
         </div>
       </form>
     </div>
+    <div class="card-footer text-center text-muted">
+      <small>✨ Bienvenido a la temporada navideña ✨</small>
+    </div>
+  </div>
+</div>
 
     <div id="panaderia">
       <form id="panForm" class="row g-3 mb-4 bg-light p-3 rounded shadow">
