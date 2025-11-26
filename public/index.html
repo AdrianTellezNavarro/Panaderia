@@ -1,444 +1,504 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Panadería La Desesperanza</title>
-
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Panadería La Desesperanza - Especial Navidad</title>
+  <link rel="shortcut icon" href="desesperanza.ico" type="image/x-icon">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    #carritoSeccion { display: none; }
-    body { background-color: #fff8f0; }
-    .pan-card img { height: 150px; object-fit: cover; }
-    #panaderia, #logoutBtn { display: none; }
-    #map { height: 400px; width: 100%; }
+    #map-template {
+      height: 450px;
+      width: 100%;
+      border-radius: 10px;
+      z-index: 1;
+    }
   </style>
 </head>
-<body>
-  <div class="container py-4">
-    <h1 class="text-center text-danger">Panadería La Desesperanza</h1>
-    <p class="text-center">Temporada de hdtpm: Temporada de hora de tragar pan de muerto 💀💀💀 </p>
+<body class="bg-success bg-gradient">
 
-    <div id="auth" class="mb-4">
-      <form id="loginForm" class="row g-3" autocomplete="off">
-  <div class="col-md-3">
-    <input type="text" id="nombre" class="form-control" placeholder="Nombre completo" required
-      pattern="^[a-zA-ZÁÉÍÓÚáéíóúñÑ\s]{2,50}$"
-      title="Solo letras y espacios, mínimo 2 caracteres">
-  </div>
-  <div class="col-md-3">
-    <input type="email" id="correo" class="form-control" placeholder="Correo electrónico" required>
-  </div>
-  <div class="col-md-3">
-    <input type="password" id="contraseña" class="form-control" placeholder="Contraseña" required
-      minlength="6" maxlength="50"
-      title="Mínimo 6 caracteres">
-  </div>
-  <div class="col-md-3 d-flex gap-2">
-    <button type="submit" class="btn btn-primary">Iniciar sesión</button>
-    <button type="button" id="registroBtn" class="btn btn-secondary">Registrarse</button>
-  </div>
-</form>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-danger shadow-lg sticky-top border-bottom border-warning border-3">
+    <div class="container-fluid">
+      <a class="navbar-brand fw-bold fs-3 text-white" href="#">
+        🎄 LA DESESPERANZA
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto gap-2">
+          <li class="nav-item">
+            <button id="btnConocenos" class="btn btn-light btn-sm rounded-pill px-3 fw-semibold">
+              <i class="bi bi-info-circle"></i> Sobre Nosotros
+            </button>
+          </li>
+          <li class="nav-item">
+            <button id="btnCarrito" class="btn btn-light btn-sm rounded-pill px-3 fw-semibold position-relative">
+              <i class="bi bi-cart3"></i> Carrito
+              <span id="badgeCarrito" class="badge bg-warning text-dark position-absolute top-0 start-100 translate-middle" style="display:none;">0</span>
+            </button>
+          </li>
+          <li class="nav-item dropdown">
+            <button id="btnPerfil" class="btn btn-warning btn-sm rounded-pill px-3 fw-semibold dropdown-toggle" data-bs-toggle="dropdown">
+              <i class="bi bi-person-circle"></i> Mi Cuenta
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" id="perfilDropdown">
+              <li><a class="dropdown-item" href="#" id="logoutBtn">
+                <i class="bi bi-box-arrow-right"></i> Salir
+              </a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
     </div>
+  </nav>
 
-    <div id="panaderia">
-      <form id="panForm" class="row g-3 mb-4">
-        <input type="hidden" id="panId">
-        <input type="hidden" id="imagenBase64">
-        <div class="col-md-4">
-          <input type="text" id="nombrePan" class="form-control" placeholder="Nombre del pan" required>
-        </div>
-        <div class="col-md-4">
-          <input type="text" id="descripcion" class="form-control" placeholder="Descripción">
-        </div>
-        <div class="col-md-2">
-          <input type="number" id="precio" class="form-control" placeholder="Precio" required>
-        </div>
-        <div class="col-md-2">
-          <input type="file" id="imagenFile" class="form-control" accept="image/*" required>
-        </div>
-        <div class="col-12 text-end">
-          <button type="submit" class="btn btn-success">Guardar</button>
-        </div>
-      </form>
+  <!-- Overlay Login/Register -->
+  <div id="authOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style="z-index: 9999; background: linear-gradient(135deg, rgba(220,53,69,0.9), rgba(25,135,84,0.9));">
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-12 col-md-6 col-lg-4">
+          <div class="card shadow-lg border-warning border-3">
+            <div class="card-body p-4">
+              <div class="text-center mb-4">
+                <h2 id="authTitle" class="fw-bold text-danger display-6">🎅 BIENVENIDO</h2>
+                <p class="text-muted">Crea tu cuenta navideña</p>
+              </div>
 
-      <div id="galeria" class="row"></div>
+              <!-- Formulario de registro -->
+              <form id="formRegister">
+                <input type="hidden" name="rol" id="rolInput" value="cliente">
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Nombre</label>
+                  <input name="nombre" id="regNombre" class="form-control" placeholder="Tu nombre" required />
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Email</label>
+                  <input name="email" id="regEmail" type="email" class="form-control" placeholder="correo@ejemplo.com" required />
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Contraseña</label>
+                  <input name="password" id="regPassword" type="password" class="form-control" placeholder="••••••••" required />
+                </div>
+                <button class="btn btn-danger w-100 mb-3 fw-semibold" type="submit">
+                  Registrarme
+                </button>
+                <div class="text-center">
+                  <a href="#" id="switchToLogin" class="text-decoration-none text-success fw-semibold">
+                    ¿Ya tienes cuenta? Inicia sesión
+                  </a>
+                </div>
+                <div id="authError" class="alert alert-danger mt-3 d-none"></div>
+              </form>
 
-      <div id="carritoSeccion" class="card mt-5">
-        <div class="card-header">🛒 Carrito</div>
-        <div class="card-body">
-          <table class="table table-bordered" id="tablaCarrito">
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Precio</th>
-                <th>Cantidad</th>
-                <th>Total</th>
-                <th>Acción</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-          <h4 class="text-end" id="totalCarrito">Total: $0.00</h4>
-            <div class="text-end mt-3">
-              <button id="pagarCarritoBtn" class="btn btn-success">💸 Pagar carrito</button>
+              <!-- Formulario de login -->
+              <form id="formLogin" class="d-none">
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Email</label>
+                  <input id="logEmail" type="email" class="form-control" placeholder="correo@ejemplo.com" required />
+                </div>
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Contraseña</label>
+                  <input id="logPassword" type="password" class="form-control" placeholder="••••••••" required />
+                </div>
+                <button class="btn btn-success w-100 mb-3 fw-semibold" type="submit">
+                  Iniciar sesión
+                </button>
+                <div class="d-flex justify-content-between flex-wrap gap-2">
+                  <a href="#" id="switchToRegister" class="text-decoration-none text-danger fw-semibold">
+                    Crear cuenta
+                  </a>
+                  <a href="#" data-bs-toggle="modal" data-bs-target="#modalReset" class="text-decoration-none text-primary">
+                    ¿Olvidaste tu contraseña?
+                  </a>
+                </div>
+                <div id="loginError" class="alert alert-danger mt-3 d-none"></div>
+              </form>
             </div>
+          </div>
         </div>
       </div>
-
-      <div class="text-end mt-3">
-        <button id="mostrarCarritoBtn" class="btn btn-outline-primary">🛒 Ver carrito</button>
-        <button id="logoutBtn" class="btn btn-outline-danger">Cerrar sesión</button>
-      </div>
-
-      <div id="statisticsContainer" style="display:none;">
-        <canvas id="salesChart" width="400" height="200"></canvas>
-      </div>
-
-
-
-      <div class="mt-4 text-center">
-        <h4 class="text-primary">Visítanos</h4>
-        <div id="map" style="height: 400px; width: 100%; margin-top:20px; display:none;"></div>
-      </div>
-      
     </div>
   </div>
 
-  <script>
-    let esAdmin = false;
+  <!-- Contenido Principal -->
+  <main class="container my-5" id="mainApp" style="display:none;">
+    
+    <!-- Hero Banner -->
+    <div class="bg-white rounded-4 shadow-lg p-5 mb-5 border border-warning border-3">
+      <div class="row align-items-center">
+        <div class="col-md-8">
+          <h1 class="display-4 fw-bold text-danger mb-3">🎄 Navidad Especial 2025</h1>
+          <p class="lead text-muted">Los mejores panes navideños para tu familia</p>
+        </div>
+        <div class="col-md-4 text-end">
+          <button id="btnAgregarPan" class="btn btn-success btn-lg shadow" data-bs-toggle="modal" data-bs-target="#modalProducto">
+            <i class="bi bi-plus-circle-fill"></i> Nuevo Pan
+          </button>
+        </div>
+      </div>
+    </div>
 
-    const form = document.getElementById('panForm');
-    const galeria = document.getElementById('galeria');
-    const imagenFile = document.getElementById('imagenFile');
-    const imagenBase64 = document.getElementById('imagenBase64');
+    <!-- Tabla de Productos -->
+    <div class="bg-light rounded-4 shadow p-4 mb-5">
+      <h3 class="text-success fw-bold mb-4">
+        <i class="bi bi-list-ul"></i> Inventario de Productos
+      </h3>
+      <div class="table-responsive">
+        <table class="table table-hover table-bordered align-middle" id="tablaProductos">
+          <thead class="table-danger">
+            <tr>
+              <th>#</th>
+              <th>Imagen</th>
+              <th>Nombre</th>
+              <th>Descripción</th>
+              <th>Precio</th>
+              <th>Stock</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
 
-    imagenFile.addEventListener('change', () => {
-      const file = imagenFile.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64 = reader.result.split(',')[1];
-          imagenBase64.value = base64;
-        };
-        reader.readAsDataURL(file);
-      }
-    });
+    <!-- Galería -->
+    <div class="bg-white rounded-4 shadow-lg p-5">
+      <h3 class="text-danger fw-bold mb-4 text-center">
+        <i class="bi bi-images"></i> Galería Navideña
+      </h3>
+      <div class="row g-4" id="galeria"></div>
+    </div>
+  </main>
 
-    form.addEventListener('submit', async e => {
-      e.preventDefault();
-      const nombre = document.getElementById('nombrePan').value.trim();
-      const precio = parseFloat(document.getElementById('precio').value);
-      const imagen = imagenBase64.value;
-      if (!nombre || isNaN(precio) || !imagen) {
-        alert('Nombre, precio e imagen son obligatorios');
-        return;
-      }
+  <!-- Modal Producto -->
+  <div class="modal fade" id="modalProducto" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content border-success border-3">
+        <form id="formProducto" enctype="multipart/form-data">
+          <div class="modal-header bg-success text-white">
+            <h5 class="modal-title fw-bold">Agregar/Editar Producto</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body p-4">
+            <input type="hidden" id="id_producto" name="id_producto">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label for="nombre" class="form-label fw-semibold">Nombre</label>
+                <input type="text" class="form-control" id="nombre" name="nombre" required>
+              </div>
+              <div class="col-md-6">
+                <label for="precio" class="form-label fw-semibold">Precio ($)</label>
+                <input type="number" class="form-control" id="precio" name="precio" min="1" step="0.01" required>
+              </div>
+              <div class="col-md-6">
+                <label for="stock" class="form-label fw-semibold">Stock</label>
+                <input type="number" class="form-control" id="stock" name="stock" min="0" required>
+              </div>
+              <div class="col-md-6">
+                <label for="imagen" class="form-label fw-semibold">Imagen</label>
+                <input type="file" class="form-control" id="imagen" name="imagen" accept="image/*">
+              </div>
+              <div class="col-12">
+                <label for="descripcion" class="form-label fw-semibold">Descripción</label>
+                <textarea class="form-control" id="descripcion" name="descripcion" rows="3"></textarea>
+              </div>
+            </div>
+            <div id="mensajeError" class="alert alert-danger mt-3 d-none"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-success">Guardar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
-      const pan = {
-        nombre,
-        descripcion: document.getElementById('descripcion').value,
-        precio,
-        imagen
-      };
+  <!-- Modal Carrito -->
+  <div class="modal fade" id="modalCarrito" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content border-warning border-3">
+        <div class="modal-header bg-warning">
+          <h5 class="modal-title fw-bold">🛒 Tu Carrito</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div id="carritoItems"></div>
+          <div class="bg-light rounded p-4 mt-4">
+            <h4 class="fw-bold text-end">TOTAL: $<span id="carritoTotal">0.00</span></h4>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btnCheckout" class="btn btn-success">Proceder al Pago</button>
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Seguir Comprando</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-      const id = document.getElementById('panId').value;
-      const method = id ? 'PUT' : 'POST';
-      const url = id ? `/inventario/${id}` : '/inventario';
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(pan)
-      });
-
-      if (res.ok) {
-        form.reset();
-        document.getElementById('panId').value = '';
-        imagenBase64.value = '';
-        cargarPanes();
-      } else {
-        const error = await res.json();
-        alert(error.error || 'Error en el servidor');
-      }
-    });
-
-    async function cargarPanes() {
-      const res = await fetch('/inventario');
-      if (!res.ok) return;
-      const panes = await res.json();
-      galeria.innerHTML = '';
-      panes.forEach(pan => {
-        galeria.innerHTML += `
-          <div class="col-md-4 mb-3">
-            <div class="card pan-card">
-              <img src="data:image/jpeg;base64,${pan.imagen}" class="card-img-top" alt="${pan.nombre}">
-              <div class="card-body">
-                <h5 class="card-title">${pan.nombre}</h5>
-                <p class="card-text">${pan.descripcion}</p>
-                <p class="text-success">$${pan.precio}</p>
-                ${esAdmin ? `
-                  <button class="btn btn-warning btn-sm" onclick="editarPan(${pan.id})">Editar</button>
-                  <button class="btn btn-danger btn-sm" onclick="eliminarPan(${pan.id})">Eliminar</button>
-                ` : ''}
-                <button class="btn btn-primary btn-sm" onclick="agregarAlCarrito(${pan.id})">Agregar al carrito</button>
+  <!-- Modal Conócenos -->
+  <div class="modal fade" id="modalConocenos" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content border-danger border-3">
+        <div class="modal-header bg-danger text-white">
+          <h2 class="modal-title fw-bold">🎄 PANADERÍA LA DESESPERANZA</h2>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="card mb-4 border-success border-2">
+            <div class="card-body">
+              <h4 class="fw-bold text-success mb-3">📍 Encuéntranos</h4>
+              <div id="map-template" class="mb-3"></div>
+              <div class="bg-light rounded p-3">
+                <p class="mb-2"><strong>HORARIO:</strong> Lunes a Domingo, 6:00 AM - 8:00 PM</p>
+                <p class="mb-0"><strong>TELÉFONO:</strong> (55) 1234-5678</p>
               </div>
             </div>
           </div>
-        `;
-      });
-    }
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    async function editarPan(id) {
-      const res = await fetch(`/inventario`);
-      const panes = await res.json();
-      const pan = panes.find(p => p.id === id);
-      if (pan) {
-        document.getElementById('nombrePan').value = pan.nombre;
-        document.getElementById('descripcion').value = pan.descripcion;
-        document.getElementById('precio').value = pan.precio;
-        document.getElementById('panId').value = pan.id;
-        imagenBase64.value = pan.imagen;
-      }
-    }
+  <!-- Modal Usuarios -->
+  <div class="modal fade" id="modalUsuarios" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content border-primary border-3">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title fw-bold">Gestionar Usuarios</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="table-responsive">
+            <table class="table table-hover table-bordered">
+              <thead class="table-primary">
+                <tr>
+                  <th>#</th>
+                  <th>Nombre</th>
+                  <th>Email</th>
+                  <th>Rol</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="usuariosTabla"></tbody>
+            </table>
+          </div>
+          <hr class="my-4">
+          <div class="bg-light rounded p-4">
+            <h6 class="fw-bold mb-3">Agregar Nuevo Usuario</h6>
+            <form id="formNuevoUsuario" class="row g-3">
+              <div class="col-md-4">
+                <input type="text" id="nuevoNombre" class="form-control" placeholder="Nombre" required>
+              </div>
+              <div class="col-md-4">
+                <input type="email" id="nuevoEmail" class="form-control" placeholder="Email" required>
+              </div>
+              <div class="col-md-2">
+                <select id="nuevoRol" class="form-select">
+                  <option value="cliente">Cliente</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div class="col-md-2">
+                <button class="btn btn-success w-100" type="submit">Añadir</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    async function eliminarPan(id) {
-      if (confirm('¿Eliminar este pan?')) {
-        await fetch(`/inventario/${id}`, { method: 'DELETE' });
-        cargarPanes();
-      }
-    }
+  <!-- Modal Reset Password -->
+  <div class="modal fade" id="modalReset" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content border-warning border-3">
+        <form id="formResetPassword">
+          <div class="modal-header bg-warning">
+            <h5 class="modal-title fw-bold">Restablecer Contraseña</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body p-4">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Nombre</label>
+              <input type="text" id="resetNombre" name="nombre" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Email</label>
+              <input type="email" id="resetEmail" name="email" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Nueva Contraseña</label>
+              <input type="password" id="resetPassword" name="newPassword" class="form-control" required>
+            </div>
+            <div id="resetError" class="alert alert-danger d-none"></div>
+            <div id="resetSuccess" class="alert alert-success d-none"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Cambiar Contraseña</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
-    async function agregarAlCarrito(producto_id) {
-      await fetch('/carrito/agregar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ producto_id, cantidad: 1 })
-      });
-      cargarCarrito();
-    }
+  <!-- Modal Ticket -->
+  <div class="modal fade" id="modalTicket" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-success border-3">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title fw-bold">✅ Compra Exitosa</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4" id="ticketContent">
+          <div class="text-center mb-4">
+            <img src="desesperanza.png" alt="Logo" style="max-width: 120px;">
+            <h4 class="fw-bold mt-3">PANADERÍA LA DESESPERANZA</h4>
+            <p class="text-muted">Especial Navidad 2025</p>
+            <hr>
+          </div>
+          <div class="mb-4">
+            <div class="d-flex justify-content-between mb-2">
+              <span class="fw-semibold">No. Venta:</span>
+              <span id="ticketNumVenta" class="fw-bold text-success">#0000</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span class="fw-semibold">Fecha:</span>
+              <span id="ticketFecha">--/--/----</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span class="fw-semibold">Cliente:</span>
+              <span id="ticketCliente">Usuario</span>
+            </div>
+          </div>
+          <hr>
+          <div class="mb-4">
+            <h6 class="fw-bold mb-3 text-center">PRODUCTOS COMPRADOS</h6>
+            <div id="ticketProductos"></div>
+          </div>
+          <hr>
+          <div class="mb-4">
+            <div class="d-flex justify-content-between mb-2 fs-5">
+              <span class="fw-bold">TOTAL PAGADO:</span>
+              <span id="ticketTotal" class="fw-bold text-success">$0.00</span>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span class="fw-semibold">Fondos Restantes:</span>
+              <span id="ticketFondosRestantes" class="fw-semibold text-primary">$0.00</span>
+            </div>
+          </div>
+          <div class="text-center bg-light rounded p-3">
+            <p class="mb-0 fw-semibold">¡Gracias por tu compra!<br>
+              <small class="text-muted">Te esperamos pronto</small>
+            </p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+          <button type="button" class="btn btn-success" id="btnDescargarTicket">Descargar Ticket</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    async function cargarCarrito() {
-      const res = await fetch('/carrito');
-      if (!res.ok) return;
-      const carrito = await res.json();
-      const tbody = document.querySelector('#tablaCarrito tbody');
-      tbody.innerHTML = '';
+  <!-- Modal Historial -->
+  <div class="modal fade" id="modalHistorial" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content border-info border-3">
+        <div class="modal-header bg-info text-white">
+          <h5 class="modal-title fw-bold">
+            <i class="bi bi-clock-history"></i> 
+            <span id="tituloHistorial">MIS COMPRAS</span>
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div id="filtrosHistorial" class="mb-4 bg-light rounded p-4" style="display: none;">
+            <h6 class="fw-bold mb-3">FILTROS</h6>
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Fecha Inicio</label>
+                <input type="date" id="filtroFechaInicio" class="form-control">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label fw-semibold">Fecha Fin</label>
+                <input type="date" id="filtroFechaFin" class="form-control">
+              </div>
+              <div class="col-md-4 d-flex align-items-end">
+                <button id="btnFiltrarHistorial" class="btn btn-primary w-100">Filtrar</button>
+              </div>
+            </div>
+          </div>
+          <div id="estadisticasHistorial" class="mb-4" style="display: none;">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <div class="card text-center border-success border-2 bg-success bg-opacity-10">
+                  <div class="card-body">
+                    <i class="bi bi-cart-check-fill fs-1 text-success"></i>
+                    <h4 class="fw-bold mt-2 mb-0" id="statTotalVentas">0</h4>
+                    <p class="text-muted mb-0">Total Ventas</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="card text-center border-warning border-2 bg-warning bg-opacity-10">
+                  <div class="card-body">
+                    <i class="bi bi-cash-coin fs-1 text-warning"></i>
+                    <h4 class="fw-bold mt-2 mb-0" id="statIngresos">$0.00</h4>
+                    <p class="text-muted mb-0">Ingresos Totales</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="card text-center border-danger border-2 bg-danger bg-opacity-10">
+                  <div class="card-body">
+                    <i class="bi bi-star-fill fs-1 text-danger"></i>
+                    <h4 class="fw-bold mt-2 mb-0" id="statTopProducto">-</h4>
+                    <p class="text-muted mb-0">Más Vendido</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="sinCompras" class="text-center py-5" style="display: none;">
+            <i class="bi bi-cart-x" style="font-size: 4rem; color: #6c757d;"></i>
+            <h5 class="mt-3 text-muted">No hay compras registradas</h5>
+          </div>
+          <div id="listaCompras"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-      carrito.forEach(item => {
-        const fila = document.createElement('tr');
-        fila.innerHTML = `
-          <td>${item.nombre}</td>
-          <td>$${item.precio}</td>
-          <td>${item.cantidad}</td>
-          <td>$${(item.precio * item.cantidad).toFixed(2)}</td>
-          <td><button class="btn btn-danger btn-sm" onclick="eliminarDelCarrito(${item.id})">Eliminar</button></td>
-        `;
-        tbody.appendChild(fila);
-      });
+  <!-- Toast Container -->
+  <div id="toast-container" class="position-fixed bottom-0 end-0 p-3" style="z-index: 9999;"></div>
 
-      const totalRes = await fetch('/carrito/total');
-      const { total } = await totalRes.json();
-      document.getElementById('totalCarrito').textContent = `Total: $${total.toFixed(2)}`;
-    }
+  <!-- Footer -->
+  <footer class="bg-danger text-white text-center py-4 mt-5 border-top border-warning border-3">
+    <div class="container">
+      <p class="mb-2 fw-bold fs-5">🎄 PANADERÍA LA DESESPERANZA</p>
+      <p class="mb-2">Horneando tradición desde 2020</p>
+      <small>&copy; 2025 Todos los derechos reservados</small>
+    </div>
+  </footer>
 
-    async function eliminarDelCarrito(id) {
-      await fetch(`/carrito/${id}`, { method: 'DELETE' });
-      cargarCarrito();
-    }
-
-    document.getElementById('logoutBtn').addEventListener('click', async () => {
-      await fetch('/logout', { method: 'POST' });
-      ocultarPanaderia();
-    });
-
-    document.getElementById('registroBtn').addEventListener('click', async () => {
-      const nombre = document.getElementById('nombre').value;
-      const correo = document.getElementById('correo').value;
-      const contraseña = document.getElementById('contraseña').value;
-
-      if (!nombre || !correo || !contraseña) {
-        alert('Todos los campos son obligatorios');
-        return;
-      }
-
-      const res = await fetch('/registro', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, correo, contraseña })
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        alert(data.mensaje);
-      } else {
-        alert(data.error || 'Error al registrarse');
-      }
-    });
-
-    document.getElementById('loginForm').addEventListener('submit', async e => {
-      e.preventDefault();
-      const correo = document.getElementById('correo').value;
-      const contraseña = document.getElementById('contraseña').value;
-
-      const res = await fetch('/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ correo, contraseña })
-      });
-
-      if (res.ok) {
-        const admin = correo === 'admin@panaderia.com' && contraseña === 'admin123';
-        mostrarPanaderia(admin);
-      } else {
-        const error = await res.json();
-        alert(error.error || 'Error al iniciar sesión');
-      }
-    });
-
-function mostrarPanaderia(admin) {
-  esAdmin = admin;
-  document.getElementById('auth').style.display = 'none';
-  document.getElementById('panaderia').style.display = 'block';
-  document.getElementById('logoutBtn').style.display = 'inline-block';
-  document.getElementById('statisticsBtn').style.display = esAdmin ? 'inline-block' : 'none';
-  document.getElementById('panForm').style.display = esAdmin ? 'flex' : 'none';
-
-  document.getElementById('mostrarCarritoBtn').style.display = esAdmin ? 'none' : 'inline-block';
-  document.getElementById('carritoSeccion').style.display = 'none';
-
-  cargarPanes();
-
-  const mapDiv = document.getElementById('map');
-  mapDiv.style.display = 'block';
-  initMapa();
-  setTimeout(refrescarMapaSiOculto, 100);
-}
-
-    document.getElementById('mostrarCarritoBtn').addEventListener('click', () => {
-      document.getElementById('carritoSeccion').style.display = 'block';
-      cargarCarrito();
-    });
-
-    document.getElementById('pagarCarritoBtn').addEventListener('click', async () => {
-      if (!confirm('¿Confirmas el pago del carrito?')) return;
-
-      const res = await fetch('/carrito/pagar', {
-        method: 'PUT',
-        credentials: 'include'
-      });
-
-      const data = await res.json();
-      alert(data.mensaje || data.error || 'Productos pagados :)');
-      cargarCarrito();
-    });
-
-function ocultarPanaderia() {
-  esAdmin = false;
-  document.getElementById('auth').style.display = 'block';
-  document.getElementById('panaderia').style.display = 'none';
-  document.getElementById('logoutBtn').style.display = 'none';
-  document.getElementById('statisticsBtn').style.display = 'none';
-  document.getElementById('mostrarCarritoBtn').style.display = 'none';
-  document.getElementById('map').style.display = 'none';
-}
-
-    async function verificarSesion() {
-      const res = await fetch('/inventario');
-      if (res.ok) {
-        mostrarPanaderia(false);
-      } else {
-        ocultarPanaderia();
-      }
-    }
-
-  verificarSesion();
-
-  
-
-  let mapInstance = null;
-
-  function initMapa() {
-    const mapContainer = document.getElementById('map');
-    if (!mapContainer) return;
-
-    if (mapInstance) return;
-
-    const coords = [19.37529627463763, -99.15366546551034];
-    mapInstance = L.map('map');
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(mapInstance);
-
-    mapInstance.setView(coords, 15);
-
-    L.marker(coords).addTo(mapInstance)
-      .bindPopup('Panadería La Desesperanza 🍞')
-      .openPopup();
-  }
-
-  function refrescarMapaSiOculto() {
-    if (mapInstance) {
-      setTimeout(() => {
-        mapInstance.invalidateSize();
-      }, 50);
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    initMapa();
-    refrescarMapaSiOculto();
-  });
-
-document.addEventListener('DOMContentLoaded', async () => {
-  let chartInstance = null;
-
-  try {
-    const res = await fetch('http://localhost:3000/estadisticas/ventas', { credentials: 'include' });
-    const data = await res.json();
-
-    const labels = data.map(item => item.producto);
-    const values = data.map(item => item.total_vendida);
-
-    const ctx = document.getElementById('salesChart').getContext('2d');
-
-    if (chartInstance) chartInstance.destroy();
-
-    chartInstance = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [{
-          label: 'Cantidad Vendida',
-          data: values,
-          backgroundColor: ['#FF6384','#36A2EB','#FFCE56','#4BC0C0','#9966FF','#FF9F40']
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          title: {
-            display: true,
-            text: '📊 Productos más vendidos'
-          }
-        }
-      }
-    });
-
-    document.getElementById('statisticsContainer').style.display = 'block';
-  } catch (err) {
-    console.error('Error al cargar estadísticas:', err);
-  }
-});
-
-
-</script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="script.js"></script>
+  <script src="mapa.js"></script>
 </body>
 </html>
