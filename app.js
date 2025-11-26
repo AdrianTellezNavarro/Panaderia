@@ -28,16 +28,6 @@ app.use(
   })
 );
 
-// Probar conexión
-(async () => {
-  try {
-    const res = await pool.query("SELECT NOW()");
-    console.log("✅ Conexión exitosa a PostgreSQL:", res.rows[0]);
-  } catch (err) {
-    console.error("❌ Error al conectar a PostgreSQL:", err);
-    process.exit(1);
-  }
-})();
 
 // Función: verificar si el usuario es admin
 function requireAdmin(req, res, next) {
@@ -46,28 +36,6 @@ function requireAdmin(req, res, next) {
   }
   next();
 }
-
-// SOCKET.IO - MAPA EN TIEMPO REAL
-
-io.on('connection', (socket) => {
-  console.log('👤 Usuario conectado al mapa:', socket.id);
-  
-  // Recibir coordenadas del usuario
-  socket.on('userCoordinates', (coords) => {
-    console.log('📍 Coordenadas recibidas:', coords);
-    // Enviar a todos los demás usuarios conectados
-    socket.broadcast.emit('userNewCoordinates', {
-      coords: coords,
-      socketId: socket.id
-    });
-  });
-  
-  // Cuando un usuario se desconecta
-  socket.on('disconnect', () => {
-    console.log('👋 Usuario desconectado:', socket.id);
-    socket.broadcast.emit('userDisconnected', socket.id);
-  });
-});
 
 // RUTAS DE AUTENTICACIÓN
 
