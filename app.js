@@ -5,13 +5,10 @@
 
 import express from "express";
 import bodyParser from "body-parser";
-import multer from "multer";
 import session from "express-session";
-import pkg from "pg";
 import { createServer } from "http";  // NUEVO
 import { Server } from "socket.io";   // NUEVO
 
-const { Pool } = pkg;
 
 
 
