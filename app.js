@@ -243,6 +243,24 @@ app.put('/carrito/pagar', requiereSesion, (req, res) => {
   });
 });
 
+app.get('/estadisticas/ventas', requiereSesion, requiereAdmin, (req, res) => {
+  const query = `
+    SELECT p.nombre AS producto, SUM(c.cantidad) AS total_vendida
+    FROM carrito c
+    JOIN productos p ON c.producto_id = p.id
+    WHERE c.vendido = 1
+    GROUP BY p.nombre
+    ORDER BY total_vendida DESC
+  `;
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error('Error al obtener estadísticas:', err);
+      return res.status(500).json({ error: 'Error en el servidor' });
+    }
+    res.json(results);
+  });
+});
+
 app.listen(3000, () => {
   console.log('Servidor corriendo en http://localhost:3000');
 });
