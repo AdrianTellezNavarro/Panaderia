@@ -3,7 +3,6 @@
 // Base de datos: PostgreSQL (Render)
 //Socket.IO para mapa en tiempo real
 
-import 'dotenv/config';
 import express from "express";
 import bodyParser from "body-parser";
 import multer from "multer";
@@ -14,11 +13,7 @@ import { Server } from "socket.io";   // NUEVO
 
 const { Pool } = pkg;
 
-// Configuración de conexión PostgreSQL
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
+
 
 // Express y Socket.IO
 const app = express();
@@ -512,12 +507,11 @@ app.post("/usuarios/agregar", requireAdmin, async (req, res) => {
     email = sanitizeInput(email);
     rol = rol === "admin" ? "admin" : "cliente";
 
-    // CAMBIO: Guardar contraseña sin encriptar
     const password = "password123";
 
     const result = await pool.query(
       "INSERT INTO usuario (nombre, email, password, rol) VALUES ($1, $2, $3, $4) RETURNING *",
-      [nombre, email, password, rol]  // password directamente, sin bcrypt.hash
+      [nombre, email, hashed, rol]
     );
 
     res.json({ mensaje: "Usuario agregado correctamente.", usuario: result.rows[0] });
@@ -1037,7 +1031,7 @@ app.get("/historial/estadisticas", requireAdmin, async (req, res) => {
   
 // INICIAR SERVIDOR
 
-const PORT = process.env.PORT || 10000;
+const PORT = 10000;
 server.listen(PORT, () => {
   console.log(`🚀 Servidor escuchando en el puerto ${PORT}`);
   console.log(`🗺️  Socket.IO para mapa en tiempo real activado`);
