@@ -3,8 +3,26 @@
 import express from "express";
 import bodyParser from "body-parser";
 import session from "express-session";
+import MySQLStore from "express-mysql-session";
 
 const app = express();
+
+const sessionStore = new MySQLStore({
+  host: process.env.DB_HOST,
+  port: 3306,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME
+});
+
+app.use(session({
+  secret: "tu_secreto_seguro",
+  resave: false,
+  saveUninitialized: false,
+  store: sessionStore
+}));
+
+
 
 app.use(express.static("public"));
 
