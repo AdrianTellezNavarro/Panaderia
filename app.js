@@ -5,6 +5,7 @@ import bodyParser from "body-parser";
 import session from "express-session";
 import MySQLStore from "express-mysql-session";
 
+
 const app = express();
 
 const sessionStore = new MySQLStore({
