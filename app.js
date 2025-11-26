@@ -1,22 +1,8 @@
-// app.js
-// Funcionalidades: login, registro, productos, categorías, carrito, ventas y usuarios (admin)
-// Base de datos: PostgreSQL (Render)
-//Socket.IO para mapa en tiempo real
+
 
 import express from "express";
 import bodyParser from "body-parser";
 import session from "express-session";
-import { createServer } from "http";  // NUEVO
-import { Server } from "socket.io";   // NUEVO
-
-
-
-
-// Express y Socket.IO
-const app = express();
-const server = createServer(app);  // NUEVO: Crear servidor HTTP
-const io = new Server(server);     // NUEVO: Inicializar Socket.IO
-const upload = multer();
 
 app.use(express.static("public"));
 
