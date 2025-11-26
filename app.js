@@ -1,10 +1,11 @@
 
 
 import bodyParser from "body-parser";
-const express = require("express");
-const session = require("express-session");
-const MySQLStore = require("express-mysql-session")(session);
+import express from "express";
+import session from "express-session";
+import connectMySQL from "express-mysql-session";
 
+const MySQLStore = connectMySQL(session);
 
 const app = express();
 
