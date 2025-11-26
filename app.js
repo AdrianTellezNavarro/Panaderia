@@ -4,6 +4,8 @@ import express from "express";
 import bodyParser from "body-parser";
 import session from "express-session";
 
+const app = express();
+
 app.use(express.static("public"));
 
 // Sanitizador simple
@@ -1014,8 +1016,7 @@ app.get("/historial/estadisticas", requireAdmin, async (req, res) => {
   
 // INICIAR SERVIDOR
 
-const PORT = 10000;
-server.listen(PORT, () => {
-  console.log(`🚀 Servidor escuchando en el puerto ${PORT}`);
-  console.log(`🗺️  Socket.IO para mapa en tiempo real activado`);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Servidor corriendo en puerto ${PORT}`);
 });
