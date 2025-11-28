@@ -2,49 +2,112 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Panadería La Desesperanza</title>
+  <title>Panadería La Desesperanza 🎄</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
   <style>
-    #carritoSeccion { display: none; }
-    body { background-color: #fff8f0; }
-    .pan-card img { height: 150px; object-fit: cover; }
+    body {
+      background: linear-gradient(135deg, #fff8f0, #ffe5d9);
+      font-family: 'Segoe UI', sans-serif;
+    }
+    h1 {
+      font-family: 'Georgia', serif;
+      font-weight: bold;
+      color: #b22222;
+      text-shadow: 1px 1px #006400;
+    }
+    /* Login pro */
+    #auth form {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    }
+    #auth .btn-primary {
+      background-color: #b22222; border: none;
+    }
+    #auth .btn-primary:hover { background-color: #8b0000; }
+    #auth .btn-secondary {
+      background-color: #006400; border: none;
+    }
+    #auth .btn-secondary:hover { background-color: #228b22; }
+
+    /* Panadería forms */
+    #panForm {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    }
+    #panForm .btn-success { background-color: #006400; border: none; }
+    #panForm .btn-success:hover { background-color: #228b22; }
+
+    /* Carrito */
+    #carritoSeccion { display: none; border: 2px solid #b22222; border-radius: 12px; }
+    #carritoSeccion .card-header { background-color: #b22222; color: #fff; font-weight: bold; }
+    #pagarCarritoBtn { background-color: #006400; border: none; }
+    #pagarCarritoBtn:hover { background-color: #228b22; }
+
+    /* Botones inferiores */
+    #mostrarCarritoBtn { border-color: #b22222; color: #b22222; }
+    #mostrarCarritoBtn:hover { background-color: #b22222; color: #fff; }
+    #logoutBtn { border-color: #006400; color: #006400; }
+    #logoutBtn:hover { background-color: #006400; color: #fff; }
+
+    /* Map */
+    #map {
+      height: 400px; width: 100%;
+      border: 3px solid #b22222;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      display: none;
+    }
+
+    /* Estado inicial */
     #panaderia, #logoutBtn { display: none; }
-    #map { height: 400px; width: 100%; }
   </style>
 </head>
 <body>
   <div class="container py-4">
-    <h1 class="text-center text-danger">Panadería La Desesperanza</h1>
-    <p class="text-center">Temporada de hdtpm: Temporada de hora de tragar pan de muerto 💀💀💀 </p>
+    <h1 class="text-center">🎄 Panadería La Desesperanza 🎅</h1>
+    <p class="text-center">✨ Temporada navideña: disfruta pan de muerto y rosca de reyes 🎁</p>
 
+    <!-- Login / Registro -->
     <div id="auth" class="mb-4">
       <form id="loginForm" class="row g-3" autocomplete="off">
-  <div class="col-md-3">
-    <input type="text" id="nombre" class="form-control" placeholder="Nombre completo" required
-      pattern="^[a-zA-ZÁÉÍÓÚáéíóúñÑ\s]{2,50}$"
-      title="Solo letras y espacios, mínimo 2 caracteres">
-  </div>
-  <div class="col-md-3">
-    <input type="email" id="correo" class="form-control" placeholder="Correo electrónico" required>
-  </div>
-  <div class="col-md-3">
-    <input type="password" id="contraseña" class="form-control" placeholder="Contraseña" required
-      minlength="6" maxlength="50"
-      title="Mínimo 6 caracteres">
-  </div>
-  <div class="col-md-3 d-flex gap-2">
-    <button type="submit" class="btn btn-primary">Iniciar sesión</button>
-    <button type="button" id="registroBtn" class="btn btn-secondary">Registrarse</button>
-  </div>
-</form>
+        <div class="col-md-3">
+          <input type="text" id="nombre" class="form-control" placeholder="Nombre completo" required
+            pattern="^[a-zA-ZÁÉÍÓÚáéíóúñÑ\s]{2,50}$" title="Solo letras y espacios, mínimo 2 caracteres">
+        </div>
+        <div class="col-md-3">
+          <input type="text" id="username" class="form-control" placeholder="Nombre de usuario" required
+            pattern="^[a-zA-Z0-9_.-]{3,30}$" title="3-30 caracteres, letras, números y ._-">
+        </div>
+        <div class="col-md-3">
+          <input type="email" id="correo" class="form-control" placeholder="Correo electrónico" required>
+        </div>
+        <div class="col-md-3">
+          <input type="password" id="contraseña" class="form-control" placeholder="Contraseña" required minlength="6" maxlength="50"
+            title="Mínimo 6 caracteres">
+        </div>
+        <div class="col-12 d-flex gap-2 justify-content-end">
+          <button type="submit" class="btn btn-primary">Iniciar sesión</button>
+          <button type="button" id="registroBtn" class="btn btn-secondary">Registrarse</button>
+        </div>
+      </form>
     </div>
 
+    <!-- Panadería -->
     <div id="panaderia">
+      <!-- Fondos del usuario -->
+      <div class="alert alert-light border d-flex justify-content-between align-items-center">
+        <div><strong>Fondos:</strong> <span id="fondosLabel">$0.00</span></div>
+        <small class="text-muted">No puedes comprar si tus fondos son 0 o menores al total del carrito</small>
+      </div>
+
       <form id="panForm" class="row g-3 mb-4">
         <input type="hidden" id="panId">
         <input type="hidden" id="imagenBase64">
@@ -55,7 +118,7 @@
           <input type="text" id="descripcion" class="form-control" placeholder="Descripción">
         </div>
         <div class="col-md-2">
-          <input type="number" id="precio" class="form-control" placeholder="Precio" required>
+          <input type="number" id="precio" class="form-control" placeholder="Precio" required min="0" step="0.01">
         </div>
         <div class="col-md-2">
           <input type="file" id="imagenFile" class="form-control" accept="image/*" required>
@@ -67,11 +130,12 @@
 
       <div id="galeria" class="row"></div>
 
+      <!-- Carrito -->
       <div id="carritoSeccion" class="card mt-5">
         <div class="card-header">🛒 Carrito</div>
         <div class="card-body">
           <table class="table table-bordered" id="tablaCarrito">
-            <thead>
+            <thead class="table-danger">
               <tr>
                 <th>Nombre</th>
                 <th>Precio</th>
@@ -82,10 +146,10 @@
             </thead>
             <tbody></tbody>
           </table>
-          <h4 class="text-end" id="totalCarrito">Total: $0.00</h4>
-            <div class="text-end mt-3">
-              <button id="pagarCarritoBtn" class="btn btn-success">💸 Pagar carrito</button>
-            </div>
+          <h4 class="text-end text-success fw-bold" id="totalCarrito">Total: $0.00</h4>
+          <div class="text-end mt-3">
+            <button id="pagarCarritoBtn" class="btn btn-success">💸 Pagar carrito</button>
+          </div>
         </div>
       </div>
 
@@ -96,296 +160,99 @@
 
       <div class="mt-4 text-center">
         <h4 class="text-primary">Visítanos</h4>
-        <div id="map" style="height: 400px; width: 100%; margin-top:20px; display:none;"></div>
+        <div id="map" style="margin-top:20px;"></div>
       </div>
-      
+
+      <!-- Historial del usuario -->
+      <div class="mt-5">
+        <h4>Mis compras</h4>
+        <table class="table table-sm">
+          <thead><tr><th># Venta</th><th>Fecha</th><th>Total</th><th></th></tr></thead>
+          <tbody id="tablaHistorial"></tbody>
+        </table>
+      </div>
+
+      <!-- Gráfico admin -->
+      <div id="adminPanel" class="mt-5" style="display:none;">
+        <h4>Ventas por día</h4>
+        <div class="d-flex gap-2 mb-2">
+          <input type="date" id="desde" class="form-control" style="max-width:200px;">
+          <input type="date" id="hasta" class="form-control" style="max-width:200px;">
+          <button id="btnGrafica" class="btn btn-outline-secondary">Actualizar</button>
+        </div>
+        <canvas id="ventasPorDia" height="120"></canvas>
+      </div>
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <script>
-    let esAdmin = false;
+    // NOTA: Mantén tu lógica original. Solo sugerimos utilizar estos endpoints:
+    // /login (username, contraseña), /registro, /usuarios/mis-fondos, /carrito, /carrito/checkout,
+    // /ventas/mias, /ventas/:id/detalle, /admin/ventas/por-dia
 
-    const form = document.getElementById('panForm');
-    const galeria = document.getElementById('galeria');
-    const imagenFile = document.getElementById('imagenFile');
-    const imagenBase64 = document.getElementById('imagenBase64');
-
-    imagenFile.addEventListener('change', () => {
-      const file = imagenFile.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64 = reader.result.split(',')[1];
-          imagenBase64.value = base64;
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-
-    form.addEventListener('submit', async e => {
-      e.preventDefault();
-      const nombre = document.getElementById('nombrePan').value.trim();
-      const precio = parseFloat(document.getElementById('precio').value);
-      const imagen = imagenBase64.value;
-      if (!nombre || isNaN(precio) || !imagen) {
-        alert('Nombre, precio e imagen son obligatorios');
-        return;
-      }
-
-      const pan = {
-        nombre,
-        descripcion: document.getElementById('descripcion').value,
-        precio,
-        imagen
-      };
-
-      const id = document.getElementById('panId').value;
-      const method = id ? 'PUT' : 'POST';
-      const url = id ? `/inventario/${id}` : '/inventario';
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(pan)
-      });
-
-      if (res.ok) {
-        form.reset();
-        document.getElementById('panId').value = '';
-        imagenBase64.value = '';
-        cargarPanes();
-      } else {
-        const error = await res.json();
-        alert(error.error || 'Error en el servidor');
-      }
-    });
-
-    async function cargarPanes() {
-      const res = await fetch('/inventario');
-      if (!res.ok) return;
-      const panes = await res.json();
-      galeria.innerHTML = '';
-      panes.forEach(pan => {
-        galeria.innerHTML += `
-          <div class="col-md-4 mb-3">
-            <div class="card pan-card">
-              <img src="data:image/jpeg;base64,${pan.imagen}" class="card-img-top" alt="${pan.nombre}">
-              <div class="card-body">
-                <h5 class="card-title">${pan.nombre}</h5>
-                <p class="card-text">${pan.descripcion}</p>
-                <p class="text-success">$${pan.precio}</p>
-                ${esAdmin ? `
-                  <button class="btn btn-warning btn-sm" onclick="editarPan(${pan.id})">Editar</button>
-                  <button class="btn btn-danger btn-sm" onclick="eliminarPan(${pan.id})">Eliminar</button>
-                ` : ''}
-                <button class="btn btn-primary btn-sm" onclick="agregarAlCarrito(${pan.id})">Agregar al carrito</button>
-              </div>
-            </div>
-          </div>
-        `;
-      });
+    // Ejemplo de actualización de fondos (llámalo cuando muestres panadería)
+    async function actualizarFondos() {
+      try {
+        const res = await fetch('/usuarios/mis-fondos');
+        if (!res.ok) return;
+        const data = await res.json();
+        document.getElementById('fondosLabel').textContent = '$' + Number(data.fondos || 0).toFixed(2);
+      } catch {}
     }
 
-    async function editarPan(id) {
-      const res = await fetch(`/inventario`);
-      const panes = await res.json();
-      const pan = panes.find(p => p.id === id);
-      if (pan) {
-        document.getElementById('nombrePan').value = pan.nombre;
-        document.getElementById('descripcion').value = pan.descripcion;
-        document.getElementById('precio').value = pan.precio;
-        document.getElementById('panId').value = pan.id;
-        imagenBase64.value = pan.imagen;
-      }
-    }
-
-    async function eliminarPan(id) {
-      if (confirm('¿Eliminar este pan?')) {
-        await fetch(`/inventario/${id}`, { method: 'DELETE' });
-        cargarPanes();
-      }
-    }
-
-    async function agregarAlCarrito(producto_id) {
-      await fetch('/carrito/agregar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ producto_id, cantidad: 1 })
-      });
-      cargarCarrito();
-    }
-
-    async function cargarCarrito() {
-      const res = await fetch('/carrito');
-      if (!res.ok) return;
-      const carrito = await res.json();
-      const tbody = document.querySelector('#tablaCarrito tbody');
+    // Ejemplo de historial (llámalo después de login)
+    async function cargarHistorial() {
+      const tbody = document.getElementById('tablaHistorial');
       tbody.innerHTML = '';
-
-      carrito.forEach(item => {
-        const fila = document.createElement('tr');
-        fila.innerHTML = `
-          <td>${item.nombre}</td>
-          <td>$${item.precio}</td>
-          <td>${item.cantidad}</td>
-          <td>$${(item.precio * item.cantidad).toFixed(2)}</td>
-          <td><button class="btn btn-danger btn-sm" onclick="eliminarDelCarrito(${item.id})">Eliminar</button></td>
+      const res = await fetch('/ventas/mias');
+      if (!res.ok) return;
+      const ventas = await res.json();
+      ventas.forEach(v => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${v.numero_venta}</td>
+          <td>${new Date(v.fecha).toLocaleString()}</td>
+          <td>$${Number(v.total).toFixed(2)}</td>
+          <td><button class="btn btn-sm btn-outline-primary" onclick="verTicket(${v.id})">Ver ticket</button></td>
         `;
-        tbody.appendChild(fila);
+        tbody.appendChild(tr);
       });
-
-      const totalRes = await fetch('/carrito/total');
-      const { total } = await totalRes.json();
-      document.getElementById('totalCarrito').textContent = `Total: $${total.toFixed(2)}`;
     }
 
-    async function eliminarDelCarrito(id) {
-      await fetch(`/carrito/${id}`, { method: 'DELETE' });
-      cargarCarrito();
+    async function verTicket(ventaId) {
+      const detalleRes = await fetch('/ventas/' + ventaId + '/detalle');
+      if (!detalleRes.ok) return alert('No se pudo cargar el ticket');
+      const detalle = await detalleRes.json();
+      const lineas = detalle.map(d => `- ${d.nombre} x${d.cantidad} @ $${Number(d.precio_unitario).toFixed(2)}`).join('\n');
+      alert('Ticket:\n' + lineas);
     }
 
-    document.getElementById('logoutBtn').addEventListener('click', async () => {
-      await fetch('/logout', { method: 'POST' });
-      ocultarPanaderia();
-    });
-
-    document.getElementById('registroBtn').addEventListener('click', async () => {
-      const nombre = document.getElementById('nombre').value;
-      const correo = document.getElementById('correo').value;
-      const contraseña = document.getElementById('contraseña').value;
-
-      if (!nombre || !correo || !contraseña) {
-        alert('Todos los campos son obligatorios');
-        return;
-      }
-
-      const res = await fetch('/registro', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, correo, contraseña })
-      });
-
+    // Gráfico admin (llámalo si detectas rol admin en tu lógica)
+    async function actualizarGrafica() {
+      const desde = document.getElementById('desde').value;
+      const hasta = document.getElementById('hasta').value;
+      if (!desde || !hasta) return;
+      const res = await fetch(`/admin/ventas/por-dia?desde=${desde}&hasta=${hasta}`);
+      if (!res.ok) return;
       const data = await res.json();
-      if (res.ok) {
-        alert(data.mensaje);
-      } else {
-        alert(data.error || 'Error al registrarse');
-      }
-    });
-
-    document.getElementById('loginForm').addEventListener('submit', async e => {
-      e.preventDefault();
-      const correo = document.getElementById('correo').value;
-      const contraseña = document.getElementById('contraseña').value;
-
-      const res = await fetch('/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ correo, contraseña })
+      const ctx = document.getElementById('ventasPorDia').getContext('2d');
+      if (window.chartVentas) window.chartVentas.destroy();
+      window.chartVentas = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: data.map(r => r.dia),
+          datasets: [{
+            label: 'Ventas',
+            data: data.map(r => r.monto),
+            borderColor: '#b22222',
+            backgroundColor: 'rgba(178,34,34,0.1)'
+          }]
+        }
       });
-
-      if (res.ok) {
-        const admin = correo === 'admin@panaderia.com' && contraseña === 'admin123';
-        mostrarPanaderia(admin);
-      } else {
-        const error = await res.json();
-        alert(error.error || 'Error al iniciar sesión');
-      }
-    });
-
-function mostrarPanaderia(admin) {
-  esAdmin = admin;
-  document.getElementById('auth').style.display = 'none';
-  document.getElementById('panaderia').style.display = 'block';
-  document.getElementById('logoutBtn').style.display = 'inline-block';
-  document.getElementById('panForm').style.display = esAdmin ? 'flex' : 'none';
-
-  document.getElementById('mostrarCarritoBtn').style.display = esAdmin ? 'none' : 'inline-block';
-  document.getElementById('carritoSeccion').style.display = 'none';
-
-  cargarPanes();
-
-  const mapDiv = document.getElementById('map');
-  mapDiv.style.display = 'block';
-  initMapa();
-  setTimeout(refrescarMapaSiOculto, 100);
-}
-
-    document.getElementById('mostrarCarritoBtn').addEventListener('click', () => {
-      document.getElementById('carritoSeccion').style.display = 'block';
-      cargarCarrito();
-    });
-
-    document.getElementById('pagarCarritoBtn').addEventListener('click', async () => {
-      if (!confirm('¿Confirmas el pago del carrito?')) return;
-
-      const res = await fetch('/carrito/pagar', {
-        method: 'PUT',
-        credentials: 'include'
-      });
-
-      const data = await res.json();
-      alert(data.mensaje || data.error || 'Productos pagados :)');
-      cargarCarrito();
-    });
-
-function ocultarPanaderia() {
-  esAdmin = false;
-  document.getElementById('auth').style.display = 'block';
-  document.getElementById('panaderia').style.display = 'none';
-  document.getElementById('logoutBtn').style.display = 'none';
-  document.getElementById('map').style.display = 'none';
-}
-
-    async function verificarSesion() {
-      const res = await fetch('/inventario');
-      if (res.ok) {
-        mostrarPanaderia(false);
-      } else {
-        ocultarPanaderia();
-      }
     }
-
-  verificarSesion();
-
-  
-
-  let mapInstance = null;
-
-  function initMapa() {
-    const mapContainer = document.getElementById('map');
-    if (!mapContainer) return;
-
-    if (mapInstance) return;
-
-    const coords = [19.37529627463763, -99.15366546551034];
-    mapInstance = L.map('map');
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(mapInstance);
-
-    mapInstance.setView(coords, 15);
-
-    L.marker(coords).addTo(mapInstance)
-      .bindPopup('Panadería La Desesperanza 🍞')
-      .openPopup();
-  }
-
-  function refrescarMapaSiOculto() {
-    if (mapInstance) {
-      setTimeout(() => {
-        mapInstance.invalidateSize();
-      }, 50);
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    initMapa();
-    refrescarMapaSiOculto();
-  });
-
-</script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    document.getElementById('btnGrafica')?.addEventListener('click', actualizarGrafica);
+  </script>
 </body>
 </html>

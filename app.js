@@ -1,248 +1,256 @@
 const express = require('express');
-const mysql = require('mysql2');
 const session = require('express-session');
-const bcrypt = require('bcrypt');
-const cors = require('cors');
+const bodyParser = require('body-parser');
+const crypto = require('crypto');
+const db = require('./db');
+
 const app = express();
 
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
-}));
-
-app.use(express.json({ limit: '10mb' }));
-app.use(express.static('public'));
-
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'panaderia_secreta',
+  secret: process.env.SESSION_SECRET || 'panaderia-secret',
   resave: false,
   saveUninitialized: false
 }));
 
-const db = mysql.createConnection({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME
-});
-db.connect(err => {
-  if (err) {
-    console.error('Error de conexión:', err);
-    return;
-  }
-  console.log('Conectado a la base de datos');
-});
-
-function requiereSesion(req, res, next) {
-  if (!req.session.usuarioId) {
-    return res.status(401).json({ error: 'No has iniciado sesión' });
-  }
+// Middlewares de auth
+function auth(req, res, next) {
+  if (!req.session?.user) return res.status(401).json({ error: 'No autenticado' });
+  next();
+}
+function authAdmin(req, res, next) {
+  if (!req.session?.user || req.session.user.rol !== 'ADMIN') return res.status(403).json({ error: 'No autorizado' });
   next();
 }
 
-function requiereAdmin(req, res, next) {
-  if (!req.session.esAdmin) {
-    return res.status(403).json({ error: 'Solo el administrador puede realizar esta acción' });
-  }
-  next();
+// Utilidad: generar número de venta
+function generarNumeroVenta() {
+  return 'V-' + crypto.randomUUID();
 }
 
-app.post('/registro', (req, res) => {
-  const { nombre, correo, contraseña } = req.body;
+/* ========= Usuarios ========= */
 
-  if (!nombre || !correo || !contraseña) {
-    return res.status(400).json({ error: 'Todos los campos son obligatorios' });
+// Registro
+app.post('/registro', async (req, res) => {
+  try {
+    const { nombre, username, correo, contraseña } = req.body;
+    if (!nombre || !username || !correo || !contraseña) return res.status(400).json({ error: 'Datos incompletos' });
+
+    await db.query(
+      'INSERT INTO usuarios (nombre, username, correo, contraseña, rol, fondos) VALUES (?,?,?,?,?,?)',
+      [nombre, username, correo, contraseña, 'USER', 0]
+    );
+    res.json({ ok: true, mensaje: 'Usuario registrado' });
+  } catch (e) {
+    res.status(400).json({ error: 'Registro inválido o duplicado' });
   }
+});
 
-  const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo);
-  if (!correoValido) {
-    return res.status(400).json({ error: 'Correo inválido' });
-  }
+// Login por username
+app.post('/login', async (req, res) => {
+  try {
+    const { username, contraseña } = req.body;
+    if (!username || !contraseña) return res.status(400).json({ error: 'Datos incompletos' });
 
-  if (contraseña.length < 6) {
-    return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
-  }
-
-  const nombreSeguro = nombre.replace(/<[^>]*>?/gm, '').trim();
-  if (nombreSeguro.length === 0 || /script/i.test(nombre)) {
-    return res.status(400).json({ error: 'Nombre inválido' });
-  }
-
-  db.query(
-    'INSERT INTO usuarios (nombre, correo, contraseña) VALUES (?, ?, ?)',
-    [nombreSeguro, correo, contraseña],
-    (err) => {
-      if (err) {
-        if (err.code === 'ER_DUP_ENTRY') {
-          return res.status(409).json({ error: 'Correo ya registrado' });
-        }
-        return res.status(500).json({ error: 'Error en el servidor' });
-      }
-      res.json({ mensaje: 'Registro exitoso, ahora inicia sesión' });
+    const rows = await db.query('SELECT * FROM usuarios WHERE username=?', [username]);
+    if (!rows.length || rows[0].contraseña !== contraseña) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
     }
-  );
-});
-
-
-app.post('/login', (req, res) => {
-  const { correo, contraseña } = req.body;
-
-  if (!correo || !contraseña) {
-    return res.status(400).json({ error: 'Correo y contraseña requeridos' });
+    const u = rows[0];
+    req.session.user = { id: u.id, username: u.username, rol: u.rol };
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Error de servidor' });
   }
+});
 
-  const correoValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo);
-  if (!correoValido) {
-    return res.status(400).json({ error: 'Correo inválido' });
+// Logout
+app.post('/logout', auth, (req, res) => {
+  req.session.destroy(() => res.json({ ok: true }));
+});
+
+// Fondos del usuario
+app.get('/usuarios/mis-fondos', auth, async (req, res) => {
+  const row = (await db.query('SELECT fondos FROM usuarios WHERE id=?', [req.session.user.id]))[0];
+  res.json({ fondos: row?.fondos || 0 });
+});
+
+// CRUD usuarios (ADMIN)
+app.get('/usuarios', authAdmin, async (req, res) => {
+  const rows = await db.query('SELECT id, nombre, username, correo, fondos, rol FROM usuarios');
+  res.json(rows);
+});
+app.post('/usuarios', authAdmin, async (req, res) => {
+  const { nombre, username, correo, contraseña, rol='USER', fondos=0 } = req.body;
+  await db.query('INSERT INTO usuarios (nombre, username, correo, contraseña, rol, fondos) VALUES (?,?,?,?,?,?)',
+    [nombre, username, correo, contraseña, rol, fondos]);
+  res.json({ ok: true });
+});
+app.put('/usuarios/:id', authAdmin, async (req, res) => {
+  const { nombre, username, correo, contraseña, rol, fondos } = req.body;
+  await db.query('UPDATE usuarios SET nombre=?, username=?, correo=?, contraseña=?, rol=?, fondos=? WHERE id=?',
+    [nombre, username, correo, contraseña, rol, fondos, req.params.id]);
+  res.json({ ok: true });
+});
+app.delete('/usuarios/:id', authAdmin, async (req, res) => {
+  await db.query('DELETE FROM usuarios WHERE id=?', [req.params.id]);
+  res.json({ ok: true });
+});
+
+/* ========= Productos ========= */
+// Ejemplos básicos (ajusta según ya tengas)
+app.get('/productos', async (req, res) => {
+  const rows = await db.query('SELECT id, nombre, descripcion, precio, stock FROM productos');
+  res.json(rows);
+});
+app.post('/productos', authAdmin, async (req, res) => {
+  const { nombre, descripcion, precio, imagenBase64, stock=1 } = req.body;
+  if (!nombre || !precio || !imagenBase64) return res.status(400).json({ error: 'Datos incompletos' });
+  const imagenBuffer = Buffer.from(imagenBase64, 'base64');
+  await db.query('INSERT INTO productos (nombre, descripcion, precio, imagen, stock) VALUES (?,?,?,?,?)',
+    [nombre, descripcion || null, precio, imagenBuffer, stock]);
+  res.json({ ok: true });
+});
+app.put('/productos/:id', authAdmin, async (req, res) => {
+  const { nombre, descripcion, precio, imagenBase64, stock } = req.body;
+  let sql = 'UPDATE productos SET nombre=?, descripcion=?, precio=?, stock=? WHERE id=?';
+  let params = [nombre, descripcion || null, precio, stock, req.params.id];
+  if (imagenBase64) {
+    sql = 'UPDATE productos SET nombre=?, descripcion=?, precio=?, imagen=?, stock=? WHERE id=?';
+    params = [nombre, descripcion || null, precio, Buffer.from(imagenBase64, 'base64'), stock, req.params.id];
   }
-
-  db.query('SELECT * FROM usuarios WHERE correo = ?', [correo], (err, results) => {
-    if (err) return res.status(500).json({ error: 'Error en el servidor' });
-    if (results.length === 0) return res.status(401).json({ error: 'Usuario no encontrado' });
-
-    const usuario = results[0];
-    if (usuario.contraseña !== contraseña) {
-      return res.status(401).json({ error: 'Contraseña incorrecta' });
-    }
-
-    req.session.usuarioId = usuario.id;
-    req.session.esAdmin = correo === 'admin@panaderia.com' && contraseña === 'admin123';
-    res.json({ mensaje: 'Sesión iniciada' });
-  });
+  await db.query(sql, params);
+  res.json({ ok: true });
+});
+app.delete('/productos/:id', authAdmin, async (req, res) => {
+  await db.query('DELETE FROM productos WHERE id=?', [req.params.id]);
+  res.json({ ok: true });
 });
 
-
-
-app.post('/logout', (req, res) => {
-  req.session.destroy(err => {
-    if (err) return res.status(500).json({ error: 'Error al cerrar sesión' });
-    res.json({ mensaje: 'Sesión cerrada' });
-  });
-});
-
-app.get('/inventario', requiereSesion, (req, res) => {
-  db.query('SELECT * FROM productos', (err, results) => {
-    if (err) return res.status(500).json({ error: 'Error en el servidor' });
-
-    const productos = results.map(pan => {
-      const imagenBase64 = pan.imagen ? Buffer.from(pan.imagen).toString('base64') : null;
-      return {
-        ...pan,
-        imagen: imagenBase64
-      };
-    });
-
-    res.json(productos);
-  });
-});
-
-app.post('/inventario', requiereSesion, requiereAdmin, (req, res) => {
-  const { nombre, descripcion, precio, imagen } = req.body;
-  if (!nombre || !precio || !imagen) {
-    return res.status(400).json({ error: 'Nombre, precio e imagen son obligatorios' });
-  }
-
-  const imagenBuffer = Buffer.from(imagen, 'base64');
-  const query = 'INSERT INTO productos (nombre, descripcion, precio, imagen) VALUES (?, ?, ?, ?)';
-  db.query(query, [nombre, descripcion, precio, imagenBuffer], (err, result) => {
-    if (err) return res.status(500).json({ error: 'Error en el servidor' });
-    res.status(201).json({ id: result.insertId });
-  });
-});
-
-app.put('/inventario/:id', requiereSesion, requiereAdmin, (req, res) => {
-  const { nombre, descripcion, precio, imagen } = req.body;
-  const { id } = req.params;
-  if (!nombre || !precio || !imagen) {
-    return res.status(400).json({ error: 'Nombre, precio e imagen son obligatorios' });
-  }
-
-  const imagenBuffer = Buffer.from(imagen, 'base64');
-  const query = 'UPDATE productos SET nombre = ?, descripcion = ?, precio = ?, imagen = ? WHERE id = ?';
-  db.query(query, [nombre, descripcion, precio, imagenBuffer, id], (err) => {
-    if (err) return res.status(500).json({ error: 'Error en el servidor' });
-    res.json({ mensaje: 'Producto actualizado' });
-  });
-});
-
-app.delete('/inventario/:id', requiereSesion, requiereAdmin, (req, res) => {
-  const { id } = req.params;
-  db.query('DELETE FROM productos WHERE id = ?', [id], (err) => {
-    if (err) return res.status(500).json({ error: 'Error en el servidor' });
-    res.json({ mensaje: 'Producto eliminado' });
-  });
-});
-
-app.get('/carrito', requiereSesion, (req, res) => {
-  const query = `
-    SELECT c.id, p.nombre, p.precio, c.cantidad
+/* ========= Carrito ========= */
+app.get('/carrito', auth, async (req, res) => {
+  const rows = await db.query(`
+    SELECT c.id, p.id AS producto_id, p.nombre, p.precio, c.cantidad
     FROM carrito c
-    JOIN productos p ON c.producto_id = p.id
-    WHERE c.usuario_id = ? AND c.vendido = 0
-  `;
-  db.query(query, [req.session.usuarioId], (err, results) => {
-    if (err) return res.status(500).json({ error: err });
-    res.json(results);
-  });
+    JOIN productos p ON p.id=c.producto_id
+    WHERE c.usuario_id=?`, [req.session.user.id]);
+  res.json(rows);
 });
-
-app.post('/carrito/agregar', requiereSesion, (req, res) => {
+app.post('/carrito', auth, async (req, res) => {
   const { producto_id, cantidad } = req.body;
-  const usuario_id = req.session.usuarioId;
-  if (!producto_id || !cantidad) return res.status(400).json({ error: 'Faltan datos' });
+  if (!producto_id || !cantidad || cantidad <= 0) return res.status(400).json({ error: 'Datos inválidos' });
+  await db.query('INSERT INTO carrito (usuario_id, producto_id, cantidad) VALUES (?,?,?)',
+    [req.session.user.id, producto_id, cantidad]);
+  res.json({ ok: true });
+});
+app.delete('/carrito/:id', auth, async (req, res) => {
+  await db.query('DELETE FROM carrito WHERE id=? AND usuario_id=?', [req.params.id, req.session.user.id]);
+  res.json({ ok: true });
+});
 
-  db.query('SELECT * FROM carrito WHERE usuario_id = ? AND producto_id = ?', [usuario_id, producto_id], (err, results) => {
-    if (err) return res.status(500).json({ error: err });
+/* ========= Checkout (comprar carrito) ========= */
+app.post('/carrito/checkout', auth, async (req, res) => {
+  const conn = await db.getConnection();
+  try {
+    const usuarioId = req.session.user.id;
 
-    if (results.length > 0) {
-      const nuevaCantidad = results[0].cantidad + cantidad;
-      db.query('UPDATE carrito SET cantidad = ? WHERE id = ?', [nuevaCantidad, results[0].id], err => {
-        if (err) return res.status(500).json({ error: err });
-        res.json({ mensaje: 'Cantidad actualizada' });
-      });
-    } else {
-      db.query('INSERT INTO carrito (usuario_id, producto_id, cantidad) VALUES (?, ?, ?)', [usuario_id, producto_id, cantidad], err => {
-        if (err) return res.status(500).json({ error: err });
-        res.json({ mensaje: 'Producto agregado al carrito' });
-      });
+    const items = await conn.query(`
+      SELECT c.id, p.id AS producto_id, p.nombre, p.precio, p.stock, c.cantidad
+      FROM carrito c
+      JOIN productos p ON p.id=c.producto_id
+      WHERE c.usuario_id=?`, [usuarioId]).then(([rows]) => rows);
+
+    if (!items.length) {
+      conn.release();
+      return res.status(400).json({ error: 'Carrito vacío' });
     }
-  });
-});
 
-app.delete('/carrito/:id', requiereSesion, (req, res) => {
-  const { id } = req.params;
-  db.query('DELETE FROM carrito WHERE id = ?', [id], (err) => {
-    if (err) return res.status(500).json({ error: err });
-    res.json({ mensaje: 'Producto eliminado del carrito' });
-  });
-});
+    const total = items.reduce((acc, it) => acc + (it.precio * it.cantidad), 0);
 
-app.get('/carrito/total', requiereSesion, (req, res) => {
-  const query = `
-    SELECT SUM(p.precio * c.cantidad) AS total
-    FROM carrito c  
-    JOIN productos p ON c.producto_id = p.id
-    WHERE c.usuario_id = ? AND c.vendido = 0
-  `;
-  db.query(query, [req.session.usuarioId], (err, results) => {
-    if (err) return res.status(500).json({ error: err });
-    const total = results[0].total !== null ? parseFloat(results[0].total) : 0;
-    res.json({ total });
-  });
-});
-
-app.put('/carrito/pagar', requiereSesion, (req, res) => {
-  const usuario_id = req.session.usuarioId;
-  const query = 'UPDATE carrito SET vendido = 1 WHERE usuario_id = ? AND vendido = 0';
-  db.query(query, [usuario_id], (err, result) => {
-    if (err) return res.status(500).json({ error: 'Error al pagar el carrito' });
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'No hay productos pendientes de pago' });
+    const user = await conn.query('SELECT fondos FROM usuarios WHERE id=?', [usuarioId]).then(([rows]) => rows[0]);
+    if (!user || user.fondos <= 0 || user.fondos < total) {
+      conn.release();
+      return res.status(400).json({ error: 'Fondos insuficientes' });
     }
-    res.json({ mensaje: 'Productos pagados :)' });
-  });
+
+    await conn.beginTransaction();
+
+    const numeroVenta = generarNumeroVenta();
+    await conn.query('INSERT INTO ventas (numero_venta, usuario_id, total) VALUES (?,?,?)',
+      [numeroVenta, usuarioId, total]);
+    const ventaId = await conn.query('SELECT LAST_INSERT_ID() AS id').then(([rows]) => rows[0].id);
+
+    for (const it of items) {
+      // Validar stock si usas stock
+      if (it.stock < it.cantidad) throw new Error('Stock insuficiente');
+
+      await conn.query('INSERT INTO detalle_venta (venta_id, producto_id, cantidad, precio_unitario) VALUES (?,?,?,?)',
+        [ventaId, it.producto_id, it.cantidad, it.precio]);
+
+      // “Eliminar de la base de datos” o decremento de stock
+      // Opción recomendada: decrementar stock, y si queda 0 puedes dejar o eliminar según tu requerimiento:
+      await conn.query('UPDATE productos SET stock=stock-? WHERE id=?', [it.cantidad, it.producto_id]);
+
+      // Si realmente quieres eliminar al comprar, usa esta línea en lugar del UPDATE:
+      // await conn.query('DELETE FROM productos WHERE id=?', [it.producto_id]);
+    }
+
+    // Descontar fondos y limitar máximo
+    await conn.query('UPDATE usuarios SET fondos = LEAST(999999999999, fondos - ?) WHERE id=?', [total, usuarioId]);
+
+    // Vaciar carrito
+    await conn.query('DELETE FROM carrito WHERE usuario_id=?', [usuarioId]);
+
+    await conn.commit();
+    conn.release();
+    res.json({ ok: true, venta_id: ventaId, numero_venta: numeroVenta, total });
+  } catch (e) {
+    await conn.rollback();
+    conn.release();
+    res.status(500).json({ error: e.message || 'Error en checkout' });
+  }
 });
 
-app.listen(3000, () => {
-  console.log('Servidor corriendo en http://localhost:3000');
+/* ========= Historial ========= */
+// Ventas del usuario
+app.get('/ventas/mias', auth, async (req, res) => {
+  const rows = await db.query('SELECT id, numero_venta, fecha, total FROM ventas WHERE usuario_id=? ORDER BY fecha DESC', [req.session.user.id]);
+  res.json(rows);
+});
+// Detalle de una venta
+app.get('/ventas/:id/detalle', auth, async (req, res) => {
+  const rows = await db.query(`
+    SELECT dv.producto_id, p.nombre, dv.cantidad, dv.precio_unitario
+    FROM detalle_venta dv
+    JOIN productos p ON p.id=dv.producto_id
+    WHERE dv.venta_id=?`, [req.params.id]);
+  res.json(rows);
+});
+// Admin: ventas por rango de fecha
+app.get('/admin/ventas', authAdmin, async (req, res) => {
+  const { desde, hasta } = req.query;
+  if (!desde || !hasta) return res.status(400).json({ error: 'Rango de fechas requerido' });
+  const rows = await db.query(`
+    SELECT id, usuario_id, numero_venta, fecha, total
+    FROM ventas
+    WHERE fecha BETWEEN ? AND ?
+    ORDER BY fecha DESC`, [desde, hasta]);
+  res.json(rows);
+});
+// Admin: agregación por día (gráficos)
+app.get('/admin/ventas/por-dia', authAdmin, async (req, res) => {
+  const { desde, hasta } = req.query;
+  if (!desde || !hasta) return res.status(400).json({ error: 'Rango de fechas requerido' });
+  const rows = await db.query(`
+    SELECT DATE(fecha) AS dia, SUM(total) AS monto
+    FROM ventas
+    WHERE fecha BETWEEN ? AND ?
+    GROUP BY DATE(fecha)
+    ORDER BY dia ASC`, [desde, hasta]);
+  res.json(rows);
+});
+
+app.listen(process.env.PORT || 3000, () => {
+  console.log('Servidor escuchando en puerto 3000');
 });
