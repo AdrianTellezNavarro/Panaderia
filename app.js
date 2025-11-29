@@ -3,17 +3,11 @@ const session = require('express-session');
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
 const db = require('./db');
-
 const path = require('path');
 
-// Servir archivos estáticos
-app.use(express.static(path.join(__dirname, 'public')));
+const app = express(); // 👈 ESTA LÍNEA DEBE VENIR ANTES DE CUALQUIER app.use
 
-// Ruta raíz que entrega index.html
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
+// Middlewares
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(session({
@@ -22,16 +16,13 @@ app.use(session({
   saveUninitialized: false
 }));
 
+// Servir archivos estáticos
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Middlewares de auth
-function auth(req, res, next) {
-  if (!req.session?.user) return res.status(401).json({ error: 'No autenticado' });
-  next();
-}
-function authAdmin(req, res, next) {
-  if (!req.session?.user || req.session.user.rol !== 'ADMIN') return res.status(403).json({ error: 'No autorizado' });
-  next();
-}
+// Ruta raíz
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+})
 
 // Utilidad: generar número de venta
 function generarNumeroVenta() {
