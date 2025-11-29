@@ -1,5 +1,5 @@
 /* ==========================
-   LOGIN / REGISTRO / LOGOUT
+   LOGIN
    ========================== */
 document.getElementById('loginForm')?.addEventListener('submit', async e => {
   e.preventDefault();
@@ -13,6 +13,7 @@ document.getElementById('loginForm')?.addEventListener('submit', async e => {
   });
 
   if (res.ok) {
+    const data = await res.json();
     document.getElementById('auth').style.display = 'none';
     document.getElementById('panaderia').style.display = 'block';
     document.getElementById('logoutBtn').style.display = 'inline-block';
@@ -21,17 +22,26 @@ document.getElementById('loginForm')?.addEventListener('submit', async e => {
     cargarHistorial();
     cargarPanes();
     initMapa();
+
+    // Si el rol es ADMIN, mostrar panel admin
+    if (data.rol === 'ADMIN') {
+      document.getElementById('adminPanel').style.display = 'block';
+    }
   } else {
     const error = await res.json();
     alert(error.error || 'Error al iniciar sesión');
   }
 });
 
-document.getElementById('registroBtn')?.addEventListener('click', async () => {
-  const nombre = prompt("Ingresa tu nombre:");
-  const username = prompt("Ingresa tu nombre de usuario:");
-  const correo = prompt("Ingresa tu correo:");
-  const contraseña = prompt("Ingresa tu contraseña:");
+/* ==========================
+   REGISTRO
+   ========================== */
+document.getElementById('registroForm')?.addEventListener('submit', async e => {
+  e.preventDefault();
+  const nombre = document.getElementById('nombre').value;
+  const username = document.getElementById('usernameRegistro').value;
+  const correo = document.getElementById('correo').value;
+  const contraseña = document.getElementById('contraseñaRegistro').value;
 
   if (!nombre || !username || !correo || !contraseña) {
     alert('Todos los campos son obligatorios');
@@ -46,6 +56,7 @@ document.getElementById('registroBtn')?.addEventListener('click', async () => {
   const data = await res.json();
   alert(data.mensaje || data.error);
 });
+
 
 document.getElementById('logoutBtn')?.addEventListener('click', async () => {
   await fetch('/logout', { method: 'POST' });
