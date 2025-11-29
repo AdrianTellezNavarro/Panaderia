@@ -3,6 +3,7 @@ const session = require('express-session');
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
 const db = require('./db');
+const path = require('path');
 
 const app = express();
 
@@ -13,6 +14,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false
 }));
+
 
 // Middlewares de auth
 function auth(req, res, next) {
@@ -28,6 +30,14 @@ function authAdmin(req, res, next) {
 function generarNumeroVenta() {
   return 'V-' + crypto.randomUUID();
 }
+
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+
 
 /* ========= Usuarios ========= */
 
