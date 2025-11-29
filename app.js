@@ -31,15 +31,13 @@ function generarNumeroVenta() {
   return 'V-' + crypto.randomUUID();
 }
 
-app.use(express.static(path.join(__dirname, 'public')));
 
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
 
+
+/* ========= Usuarios ========= */
 
 /* ==========================
-   LOGIN / REGISTRO / LOGOUT
+   LOGIN
    ========================== */
 document.getElementById('loginForm')?.addEventListener('submit', async e => {
   e.preventDefault();
@@ -53,6 +51,7 @@ document.getElementById('loginForm')?.addEventListener('submit', async e => {
   });
 
   if (res.ok) {
+    const data = await res.json();
     document.getElementById('auth').style.display = 'none';
     document.getElementById('panaderia').style.display = 'block';
     document.getElementById('logoutBtn').style.display = 'inline-block';
@@ -61,17 +60,26 @@ document.getElementById('loginForm')?.addEventListener('submit', async e => {
     cargarHistorial();
     cargarPanes();
     initMapa();
+
+    // Si el rol es ADMIN, mostrar panel admin
+    if (data.rol === 'ADMIN') {
+      document.getElementById('adminPanel').style.display = 'block';
+    }
   } else {
     const error = await res.json();
     alert(error.error || 'Error al iniciar sesión');
   }
 });
 
-document.getElementById('registroBtn')?.addEventListener('click', async () => {
+/* ==========================
+   REGISTRO
+   ========================== */
+document.getElementById('registroForm')?.addEventListener('submit', async e => {
+  e.preventDefault();
   const nombre = document.getElementById('nombre').value;
-  const username = document.getElementById('username').value;
+  const username = document.getElementById('usernameRegistro').value;
   const correo = document.getElementById('correo').value;
-  const contraseña = document.getElementById('contraseña').value;
+  const contraseña = document.getElementById('contraseñaRegistro').value;
 
   if (!nombre || !username || !correo || !contraseña) {
     alert('Todos los campos son obligatorios');
@@ -87,229 +95,194 @@ document.getElementById('registroBtn')?.addEventListener('click', async () => {
   alert(data.mensaje || data.error);
 });
 
-document.getElementById('logoutBtn')?.addEventListener('click', async () => {
-  await fetch('/logout', { method: 'POST' });
-  document.getElementById('auth').style.display = 'block';
-  document.getElementById('panaderia').style.display = 'none';
-  document.getElementById('logoutBtn').style.display = 'none';
-  document.getElementById('mostrarCarritoBtn').style.display = 'none';
+
+// Logout
+app.post('/logout', auth, (req, res) => {
+  req.session.destroy(() => res.json({ ok: true }));
 });
 
-/* ==========================
-   FONDOS
-   ========================== */
-async function actualizarFondos() {
-  const res = await fetch('/usuarios/mis-fondos');
-  if (!res.ok) return;
-  const data = await res.json();
-  document.getElementById('fondosLabel').textContent = '$' + Number(data.fondos || 0).toFixed(2);
-}
-
-/* ==========================
-   HISTORIAL DE COMPRAS
-   ========================== */
-async function cargarHistorial() {
-  const tbody = document.getElementById('tablaHistorial');
-  if (!tbody) return;
-  tbody.innerHTML = '';
-  const res = await fetch('/ventas/mias');
-  if (!res.ok) return;
-  const ventas = await res.json();
-  ventas.forEach(v => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${v.numero_venta}</td>
-      <td>${new Date(v.fecha).toLocaleString()}</td>
-      <td>$${Number(v.total).toFixed(2)}</td>
-      <td><button class="btn btn-sm btn-outline-primary" onclick="verTicket(${v.id})">Ver ticket</button></td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-async function verTicket(ventaId) {
-  const detalleRes = await fetch('/ventas/' + ventaId + '/detalle');
-  if (!detalleRes.ok) return alert('No se pudo cargar el ticket');
-  const detalle = await detalleRes.json();
-  const lineas = detalle.map(d => `- ${d.nombre} x${d.cantidad} @ $${Number(d.precio_unitario).toFixed(2)}`).join('\n');
-  alert('Ticket:\n' + lineas);
-}
-
-/* ==========================
-   CARRITO
-   ========================== */
-document.getElementById('pagarCarritoBtn')?.addEventListener('click', async () => {
-  const res = await fetch('/carrito/checkout', { method: 'POST' });
-  if (!res.ok) {
-    const error = await res.json();
-    alert(error.error || 'Error al procesar compra');
-    return;
-  }
-  const data = await res.json();
-  alert(`Compra realizada!\nNúmero de venta: ${data.numero_venta}\nTotal: $${Number(data.total).toFixed(2)}`);
-  actualizarFondos();
-  cargarHistorial();
-  document.querySelector('#tablaCarrito tbody').innerHTML = '';
-  document.getElementById('totalCarrito').textContent = 'Total: $0.00';
+// Fondos del usuario
+app.get('/usuarios/mis-fondos', auth, async (req, res) => {
+  const row = (await db.query('SELECT fondos FROM usuarios WHERE id=?', [req.session.user.id]))[0];
+  res.json({ fondos: row?.fondos || 0 });
 });
 
-document.getElementById('mostrarCarritoBtn')?.addEventListener('click', async () => {
-  const res = await fetch('/carrito');
-  if (!res.ok) return;
-  const items = await res.json();
-  const tbody = document.querySelector('#tablaCarrito tbody');
-  tbody.innerHTML = '';
-  let total = 0;
-  items.forEach(it => {
-    const subtotal = it.precio * it.cantidad;
-    total += subtotal;
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${it.nombre}</td>
-      <td>$${Number(it.precio).toFixed(2)}</td>
-      <td>${it.cantidad}</td>
-      <td>$${subtotal.toFixed(2)}</td>
-      <td><button class="btn btn-sm btn-danger" onclick="eliminarDelCarrito(${it.id})">Eliminar</button></td>
-    `;
-    tbody.appendChild(tr);
-  });
-  document.getElementById('totalCarrito').textContent = 'Total: $' + total.toFixed(2);
+// CRUD usuarios (ADMIN)
+app.get('/usuarios', authAdmin, async (req, res) => {
+  const rows = await db.query('SELECT id, nombre, username, correo, fondos, rol FROM usuarios');
+  res.json(rows);
+});
+app.post('/usuarios', authAdmin, async (req, res) => {
+  const { nombre, username, correo, contraseña, rol='USER', fondos=0 } = req.body;
+  await db.query('INSERT INTO usuarios (nombre, username, correo, contraseña, rol, fondos) VALUES (?,?,?,?,?,?)',
+    [nombre, username, correo, contraseña, rol, fondos]);
+  res.json({ ok: true });
+});
+app.put('/usuarios/:id', authAdmin, async (req, res) => {
+  const { nombre, username, correo, contraseña, rol, fondos } = req.body;
+  await db.query('UPDATE usuarios SET nombre=?, username=?, correo=?, contraseña=?, rol=?, fondos=? WHERE id=?',
+    [nombre, username, correo, contraseña, rol, fondos, req.params.id]);
+  res.json({ ok: true });
+});
+app.delete('/usuarios/:id', authAdmin, async (req, res) => {
+  await db.query('DELETE FROM usuarios WHERE id=?', [req.params.id]);
+  res.json({ ok: true });
 });
 
-async function eliminarDelCarrito(id) {
-  const res = await fetch('/carrito/' + id, { method: 'DELETE' });
-  if (res.ok) {
-    alert('Producto eliminado del carrito');
-    document.getElementById('mostrarCarritoBtn').click(); // recargar carrito
-  } else {
-    const error = await res.json();
-    alert(error.error || 'Error al eliminar producto');
+/* ========= Productos ========= */
+// Ejemplos básicos (ajusta según ya tengas)
+app.get('/productos', async (req, res) => {
+  const rows = await db.query('SELECT id, nombre, descripcion, precio, stock FROM productos');
+  res.json(rows);
+});
+app.post('/productos', authAdmin, async (req, res) => {
+  const { nombre, descripcion, precio, imagenBase64, stock=1 } = req.body;
+  if (!nombre || !precio || !imagenBase64) return res.status(400).json({ error: 'Datos incompletos' });
+  const imagenBuffer = Buffer.from(imagenBase64, 'base64');
+  await db.query('INSERT INTO productos (nombre, descripcion, precio, imagen, stock) VALUES (?,?,?,?,?)',
+    [nombre, descripcion || null, precio, imagenBuffer, stock]);
+  res.json({ ok: true });
+});
+app.put('/productos/:id', authAdmin, async (req, res) => {
+  const { nombre, descripcion, precio, imagenBase64, stock } = req.body;
+  let sql = 'UPDATE productos SET nombre=?, descripcion=?, precio=?, stock=? WHERE id=?';
+  let params = [nombre, descripcion || null, precio, stock, req.params.id];
+  if (imagenBase64) {
+    sql = 'UPDATE productos SET nombre=?, descripcion=?, precio=?, imagen=?, stock=? WHERE id=?';
+    params = [nombre, descripcion || null, precio, Buffer.from(imagenBase64, 'base64'), stock, req.params.id];
   }
-}
+  await db.query(sql, params);
+  res.json({ ok: true });
+});
+app.delete('/productos/:id', authAdmin, async (req, res) => {
+  await db.query('DELETE FROM productos WHERE id=?', [req.params.id]);
+  res.json({ ok: true });
+});
 
-/* ==========================
-   CRUD DE PANES (PRODUCTOS)
-   ========================== */
-document.getElementById('panForm')?.addEventListener('submit', async e => {
-  e.preventDefault();
-  const nombrePan = document.getElementById('nombrePan').value;
-  const descripcion = document.getElementById('descripcion').value;
-  const precio = document.getElementById('precio').value;
-  const imagenFile = document.getElementById('imagenFile').files[0];
+/* ========= Carrito ========= */
+app.get('/carrito', auth, async (req, res) => {
+  const rows = await db.query(`
+    SELECT c.id, p.id AS producto_id, p.nombre, p.precio, c.cantidad
+    FROM carrito c
+    JOIN productos p ON p.id=c.producto_id
+    WHERE c.usuario_id=?`, [req.session.user.id]);
+  res.json(rows);
+});
+app.post('/carrito', auth, async (req, res) => {
+  const { producto_id, cantidad } = req.body;
+  if (!producto_id || !cantidad || cantidad <= 0) return res.status(400).json({ error: 'Datos inválidos' });
+  await db.query('INSERT INTO carrito (usuario_id, producto_id, cantidad) VALUES (?,?,?)',
+    [req.session.user.id, producto_id, cantidad]);
+  res.json({ ok: true });
+});
+app.delete('/carrito/:id', auth, async (req, res) => {
+  await db.query('DELETE FROM carrito WHERE id=? AND usuario_id=?', [req.params.id, req.session.user.id]);
+  res.json({ ok: true });
+});
 
-  if (!imagenFile) {
-    alert('Debes seleccionar una imagen');
-    return;
-  }
+/* ========= Checkout (comprar carrito) ========= */
+app.post('/carrito/checkout', auth, async (req, res) => {
+  const conn = await db.getConnection();
+  try {
+    const usuarioId = req.session.user.id;
 
-  const reader = new FileReader();
-  reader.onloadend = async () => {
-    const imagenBase64 = reader.result.split(',')[1];
-    const res = await fetch('/productos', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nombre: nombrePan, descripcion, precio, imagenBase64 })
-    });
-    if (res.ok) {
-      alert('Producto guardado');
-      cargarPanes();
-      document.getElementById('panForm').reset();
-    } else {
-      const error = await res.json();
-      alert(error.error || 'Error al guardar producto');
+    const items = await conn.query(`
+      SELECT c.id, p.id AS producto_id, p.nombre, p.precio, p.stock, c.cantidad
+      FROM carrito c
+      JOIN productos p ON p.id=c.producto_id
+      WHERE c.usuario_id=?`, [usuarioId]).then(([rows]) => rows);
+
+    if (!items.length) {
+      conn.release();
+      return res.status(400).json({ error: 'Carrito vacío' });
     }
-  };
-  reader.readAsDataURL(imagenFile);
+
+    const total = items.reduce((acc, it) => acc + (it.precio * it.cantidad), 0);
+
+    const user = await conn.query('SELECT fondos FROM usuarios WHERE id=?', [usuarioId]).then(([rows]) => rows[0]);
+    if (!user || user.fondos <= 0 || user.fondos < total) {
+      conn.release();
+      return res.status(400).json({ error: 'Fondos insuficientes' });
+    }
+
+    await conn.beginTransaction();
+
+    const numeroVenta = generarNumeroVenta();
+    await conn.query('INSERT INTO ventas (numero_venta, usuario_id, total) VALUES (?,?,?)',
+      [numeroVenta, usuarioId, total]);
+    const ventaId = await conn.query('SELECT LAST_INSERT_ID() AS id').then(([rows]) => rows[0].id);
+
+    for (const it of items) {
+      // Validar stock si usas stock
+      if (it.stock < it.cantidad) throw new Error('Stock insuficiente');
+
+      await conn.query('INSERT INTO detalle_venta (venta_id, producto_id, cantidad, precio_unitario) VALUES (?,?,?,?)',
+        [ventaId, it.producto_id, it.cantidad, it.precio]);
+
+      // “Eliminar de la base de datos” o decremento de stock
+      // Opción recomendada: decrementar stock, y si queda 0 puedes dejar o eliminar según tu requerimiento:
+      await conn.query('UPDATE productos SET stock=stock-? WHERE id=?', [it.cantidad, it.producto_id]);
+
+      // Si realmente quieres eliminar al comprar, usa esta línea en lugar del UPDATE:
+      // await conn.query('DELETE FROM productos WHERE id=?', [it.producto_id]);
+    }
+
+    // Descontar fondos y limitar máximo
+    await conn.query('UPDATE usuarios SET fondos = LEAST(999999999999, fondos - ?) WHERE id=?', [total, usuarioId]);
+
+    // Vaciar carrito
+    await conn.query('DELETE FROM carrito WHERE usuario_id=?', [usuarioId]);
+
+    await conn.commit();
+    conn.release();
+    res.json({ ok: true, venta_id: ventaId, numero_venta: numeroVenta, total });
+  } catch (e) {
+    await conn.rollback();
+    conn.release();
+    res.status(500).json({ error: e.message || 'Error en checkout' });
+  }
 });
 
-async function cargarPanes() {
-  const res = await fetch('/productos');
-  if (!res.ok) return;
-  const panes = await res.json();
-  const galeria = document.getElementById('galeria');
-  galeria.innerHTML = '';
-  panes.forEach(p => {
-    const col = document.createElement('div');
-    col.className = 'col-md-4 mb-3';
-    col.innerHTML = `
-      <div class="card pan-card">
-        <img src="data:image/jpeg;base64,${p.imagen}" class="card-img-top" alt="${p.nombre}">
-        <div class="card-body">
-          <h5 class="card-title">${p.nombre}</h5>
-          <p class="card-text">${p.descripcion || ''}</p>
-          <p class="card-text text-success">$${Number(p.precio).toFixed(2)}</p>
-          <button class="btn btn-sm btn-primary" onclick="agregarAlCarrito(${p.id})">Agregar al carrito</button>
-        </div>
-      </div>
-    `;
-    galeria.appendChild(col);
-  });
-}
+/* ========= Historial ========= */
+// Ventas del usuario
+app.get('/ventas/mias', auth, async (req, res) => {
+  const rows = await db.query('SELECT id, numero_venta, fecha, total FROM ventas WHERE usuario_id=? ORDER BY fecha DESC', [req.session.user.id]);
+  res.json(rows);
+});
+// Detalle de una venta
+app.get('/ventas/:id/detalle', auth, async (req, res) => {
+  const rows = await db.query(`
+    SELECT dv.producto_id, p.nombre, dv.cantidad, dv.precio_unitario
+    FROM detalle_venta dv
+    JOIN productos p ON p.id=dv.producto_id
+    WHERE dv.venta_id=?`, [req.params.id]);
+  res.json(rows);
+});
+// Admin: ventas por rango de fecha
+app.get('/admin/ventas', authAdmin, async (req, res) => {
+  const { desde, hasta } = req.query;
+  if (!desde || !hasta) return res.status(400).json({ error: 'Rango de fechas requerido' });
+  const rows = await db.query(`
+    SELECT id, usuario_id, numero_venta, fecha, total
+    FROM ventas
+    WHERE fecha BETWEEN ? AND ?
+    ORDER BY fecha DESC`, [desde, hasta]);
+  res.json(rows);
+});
+// Admin: agregación por día (gráficos)
+app.get('/admin/ventas/por-dia', authAdmin, async (req, res) => {
+  const { desde, hasta } = req.query;
+  if (!desde || !hasta) return res.status(400).json({ error: 'Rango de fechas requerido' });
+  const rows = await db.query(`
+    SELECT DATE(fecha) AS dia, SUM(total) AS monto
+    FROM ventas
+    WHERE fecha BETWEEN ? AND ?
+    GROUP BY DATE(fecha)
+    ORDER BY dia ASC`, [desde, hasta]);
+  res.json(rows);
+});
 
-async function agregarAlCarrito(productoId) {
-  const cantidad = 1; // por defecto
-  const res = await fetch('/carrito', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ producto_id: productoId, cantidad })
-  });
-  if (res.ok) {
-    alert('Producto agregado al carrito');
-  } else {
-    const error = await res.json();
-    alert(error.error || 'Error al agregar producto al carrito');
-  }
-}
-/* ==========================
-   MAPA (Leaflet)
-   ========================== */
-let mapInstance = null;
-function initMapa() {
-  if (mapInstance) return;
-  const coords = [19.4326, -99.1332]; // CDMX
-  mapInstance = L.map('map').setView(coords, 15);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-  }).addTo(mapInstance);
-  L.marker(coords).addTo(mapInstance)
-    .bindPopup('Panadería La Desesperanza 🍞')
-    .openPopup();
-  document.getElementById('map').style.display = 'block';
-}
-
-/* ==========================
-   GRÁFICO ADMIN (Chart.js)
-   ========================== */
-async function actualizarGrafica() {
-  const desde = document.getElementById('desde')?.value;
-  const hasta = document.getElementById('hasta')?.value;
-  if (!desde || !hasta) return;
-  const res = await fetch(`/admin/ventas/por-dia?desde=${desde}&hasta=${hasta}`);
-  if (!res.ok) return;
-  const data = await res.json();
-  const ctx = document.getElementById('ventasPorDia').getContext('2d');
-  if (window.chartVentas) window.chartVentas.destroy();
-  window.chartVentas = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: data.map(r => r.dia),
-      datasets: [{
-        label: 'Ventas por día',
-        data: data.map(r => r.monto),
-        borderColor: '#b22222',
-        backgroundColor: 'rgba(178,34,34,0.12)',
-        tension: 0.25,
-        fill: true
-      }]
-    },
-    options: {
-      plugins: { legend: { display: true } },
-      scales: {
-        x: { title: { display: true, text: 'Fecha' } },
-        y: { title: { display: true, text: 'Monto' }, beginAtZero: true }
-      }
-    }
-  });
-}
-document.getElementById('btnGrafica')?.addEventListener('click', actualizarGrafica);
+app.listen(process.env.PORT || 3000, () => {
+  console.log('Servidor escuchando en puerto 3000');
+});
 
