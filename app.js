@@ -3,7 +3,6 @@ const session = require('express-session');
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
 const db = require('./db');
-const path = require('path');
 
 const path = require('path');
 
