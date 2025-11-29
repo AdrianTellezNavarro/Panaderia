@@ -5,7 +5,15 @@ const crypto = require('crypto');
 const db = require('./db');
 const path = require('path');
 
-const app = express();
+const path = require('path');
+
+// Servir archivos estáticos
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Ruta raíz que entrega index.html
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true }));
