@@ -36,65 +36,39 @@ function generarNumeroVenta() {
 
 /* ========= Usuarios ========= */
 
-/* ==========================
-   LOGIN
-   ========================== */
-document.getElementById('loginForm')?.addEventListener('submit', async e => {
-  e.preventDefault();
-  const username = document.getElementById('username').value;
-  const contraseña = document.getElementById('contraseña').value;
+// Registro
+app.post('/registro', async (req, res) => {
+  try {
+    const { nombre, username, correo, contraseña } = req.body;
+    if (!nombre || !username || !correo || !contraseña) return res.status(400).json({ error: 'Datos incompletos' });
 
-  const res = await fetch('/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, contraseña })
-  });
+    await db.query(
+      'INSERT INTO usuarios (nombre, username, correo, contraseña, rol, fondos) VALUES (?,?,?,?,?,?)',
+      [nombre, username, correo, contraseña, 'USER', 0]
+    );
+    res.json({ ok: true, mensaje: 'Usuario registrado' });
+  } catch (e) {
+    res.status(400).json({ error: 'Registro inválido o duplicado' });
+  }
+});
 
-  if (res.ok) {
-    const data = await res.json();
-    document.getElementById('auth').style.display = 'none';
-    document.getElementById('panaderia').style.display = 'block';
-    document.getElementById('logoutBtn').style.display = 'inline-block';
-    document.getElementById('mostrarCarritoBtn').style.display = 'inline-block';
-    actualizarFondos();
-    cargarHistorial();
-    cargarPanes();
-    initMapa();
+// Login por username
+app.post('/login', async (req, res) => {
+  try {
+    const { username, contraseña } = req.body;
+    if (!username || !contraseña) return res.status(400).json({ error: 'Datos incompletos' });
 
-    // Si el rol es ADMIN, mostrar panel admin
-    if (data.rol === 'ADMIN') {
-      document.getElementById('adminPanel').style.display = 'block';
+    const rows = await db.query('SELECT * FROM usuarios WHERE username=?', [username]);
+    if (!rows.length || rows[0].contraseña !== contraseña) {
+      return res.status(401).json({ error: 'Credenciales inválidas' });
     }
-  } else {
-    const error = await res.json();
-    alert(error.error || 'Error al iniciar sesión');
+    const u = rows[0];
+    req.session.user = { id: u.id, username: u.username, rol: u.rol };
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Error de servidor' });
   }
 });
-
-/* ==========================
-   REGISTRO
-   ========================== */
-document.getElementById('registroForm')?.addEventListener('submit', async e => {
-  e.preventDefault();
-  const nombre = document.getElementById('nombre').value;
-  const username = document.getElementById('usernameRegistro').value;
-  const correo = document.getElementById('correo').value;
-  const contraseña = document.getElementById('contraseñaRegistro').value;
-
-  if (!nombre || !username || !correo || !contraseña) {
-    alert('Todos los campos son obligatorios');
-    return;
-  }
-
-  const res = await fetch('/registro', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ nombre, username, correo, contraseña })
-  });
-  const data = await res.json();
-  alert(data.mensaje || data.error);
-});
-
 
 // Logout
 app.post('/logout', auth, (req, res) => {
@@ -285,4 +259,3 @@ app.get('/admin/ventas/por-dia', authAdmin, async (req, res) => {
 app.listen(process.env.PORT || 3000, () => {
   console.log('Servidor escuchando en puerto 3000');
 });
-
