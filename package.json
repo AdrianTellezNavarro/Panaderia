@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "dotenv": "^16.x.x",
     "cors": "^2.8.5",
     "express": "^4.21.0",
     "express-session": "^1.18.2",
