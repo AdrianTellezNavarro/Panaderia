@@ -2,54 +2,54 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Panadería La Desesperanza 🎄</title>
+  <title>Panadería La Desesperanza</title>
 
-  <script src="js/main.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<link rel="stylesheet" href="css/style.css">
-
+  <style>
+    #carritoSeccion, #historialSeccion, #estadisticasSeccion { display: none; }
+    body { background-color: #fff8f0; }
+    .pan-card img { height: 150px; object-fit: cover; }
+    #panaderia, #logoutBtn { display: none; }
+    #map { height: 400px; width: 100%; }
+    .chart-container { max-width: 500px; margin: 20px auto; }
+    .ticket { background: white; border: 2px dashed #333; padding: 20px; max-width: 400px; margin: 20px auto; font-family: monospace; }
+    .ticket h4 { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; }
+    .ticket-item { display: flex; justify-content: space-between; margin: 5px 0; }
+    .ticket-total { border-top: 2px solid #333; padding-top: 10px; margin-top: 10px; font-weight: bold; }
+  </style>
 </head>
 <body>
   <div class="container py-4">
-    <h1 class="text-center">🎄 Panadería La Desesperanza 🎅</h1>
-    <p class="text-center">✨ Temporada navideña: disfruta pan de muerto y rosca de reyes 🎁</p>
+    <h1 class="text-center text-danger">Panadería La Desesperanza</h1>
+    <p class="text-center">Temporada de hdtpm: Temporada de hora de tragar pan de muerto 💀💀💀 </p>
 
-    <!-- Login / Registro -->
     <div id="auth" class="mb-4">
       <form id="loginForm" class="row g-3" autocomplete="off">
         <div class="col-md-3">
           <input type="text" id="nombre" class="form-control" placeholder="Nombre completo" required
-            pattern="^[a-zA-ZÁÉÍÓÚáéíóúñÑ\s]{2,50}$" title="Solo letras y espacios, mínimo 2 caracteres">
-        </div>
-        <div class="col-md-3">
-          <input type="text" id="username" class="form-control" placeholder="Nombre de usuario" required
-            pattern="^[a-zA-Z0-9_.-]{3,30}$" title="3-30 caracteres, letras, números y ._-">
+            pattern="^[a-zA-ZÁÉÍÓÚáéíóúñÑ\s]{2,50}$"
+            title="Solo letras y espacios, mínimo 2 caracteres">
         </div>
         <div class="col-md-3">
           <input type="email" id="correo" class="form-control" placeholder="Correo electrónico" required>
         </div>
         <div class="col-md-3">
-          <input type="password" id="contraseña" class="form-control" placeholder="Contraseña" required minlength="6" maxlength="50"
+          <input type="password" id="password" name="password" class="form-control" placeholder="Contraseña" required
+            minlength="6" maxlength="50"
             title="Mínimo 6 caracteres">
         </div>
-        <div class="col-12 d-flex gap-2 justify-content-end">
+        <div class="col-md-3 d-flex gap-2">
           <button type="submit" class="btn btn-primary">Iniciar sesión</button>
           <button type="button" id="registroBtn" class="btn btn-secondary">Registrarse</button>
         </div>
       </form>
     </div>
 
-    <!-- Panadería -->
     <div id="panaderia">
-      <!-- Fondos del usuario -->
-      <div class="alert alert-light border d-flex justify-content-between align-items-center">
-        <div><strong>Fondos:</strong> <span id="fondosLabel">$0.00</span></div>
-        <small class="text-muted">No puedes comprar si tus fondos son 0 o menores al total del carrito</small>
-      </div>
-
       <form id="panForm" class="row g-3 mb-4">
         <input type="hidden" id="panId">
         <input type="hidden" id="imagenBase64">
@@ -60,7 +60,7 @@
           <input type="text" id="descripcion" class="form-control" placeholder="Descripción">
         </div>
         <div class="col-md-2">
-          <input type="number" id="precio" class="form-control" placeholder="Precio" required min="0" step="0.01">
+          <input type="number" id="precio" class="form-control" placeholder="Precio" required>
         </div>
         <div class="col-md-2">
           <input type="file" id="imagenFile" class="form-control" accept="image/*" required>
@@ -72,12 +72,11 @@
 
       <div id="galeria" class="row"></div>
 
-      <!-- Carrito -->
       <div id="carritoSeccion" class="card mt-5">
-        <div class="card-header">🛒 Carrito</div>
+        <div class="card-header">Carrito</div>
         <div class="card-body">
           <table class="table table-bordered" id="tablaCarrito">
-            <thead class="table-danger">
+            <thead>
               <tr>
                 <th>Nombre</th>
                 <th>Precio</th>
@@ -88,47 +87,605 @@
             </thead>
             <tbody></tbody>
           </table>
-          <h4 class="text-end text-success fw-bold" id="totalCarrito">Total: $0.00</h4>
+          <h4 class="text-end" id="totalCarrito">Total: $0.00</h4>
           <div class="text-end mt-3">
-            <button id="pagarCarritoBtn" class="btn btn-success">💸 Pagar carrito</button>
+            <button id="pagarCarritoBtn" class="btn btn-success">Pagar carrito</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="ticketSeccion" style="display: none;">
+        <div class="ticket">
+          <h4>TICKET DE COMPRA</h4>
+          <p style="text-align: center; margin: 10px 0;">Panadería La Desesperanza</p>
+          <p style="font-size: 12px; text-align: center;" id="ticketFecha"></p>
+          <div style="border-top: 1px dashed #333; margin: 10px 0;"></div>
+          <div id="ticketItems"></div>
+          <div class="ticket-total">
+            <div style="display: flex; justify-content: space-between;">
+              <span>TOTAL:</span>
+              <span id="ticketTotal">$0.00</span>
+            </div>
+          </div>
+          <p style="text-align: center; margin-top: 15px; font-size: 12px;">¡Gracias por su compra!</p>
+          <div class="text-center mt-3">
+            <button onclick="cerrarTicket()" class="btn btn-sm btn-primary">Cerrar</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="historialSeccion" class="card mt-5">
+        <div class="card-header">Historial de Compras</div>
+        <div class="card-body">
+          <div id="historialContenido"></div>
+        </div>
+      </div>
+
+      <div id="estadisticasSeccion" class="card mt-5">
+        <div class="card-header">Estadísticas de la Panadería</div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-4">
+              <h5 class="text-center">Panes Más Vendidos</h5>
+              <div class="chart-container">
+                <canvas id="chartPanes"></canvas>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <h5 class="text-center">Mejores Clientes</h5>
+              <div class="chart-container">
+                <canvas id="chartClientes"></canvas>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <h5 class="text-center">Ingresos (últimos 7 días)</h5>
+              <div class="chart-container">
+                <canvas id="chartIngresos"></canvas>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       <div class="text-end mt-3">
-        <button id="mostrarCarritoBtn" class="btn btn-outline-primary">🛒 Ver carrito</button>
+        <div class="alert alert-info text-end">
+          Saldo disponible: <strong id="saldoUsuario">$0.00</strong>
+        </div>
+        <div class="text-end mb-3">
+          <button class="btn btn-outline-success" onclick="agregarSaldo()">
+            Agregar saldo
+          </button>
+        </div>
+        <button id="mostrarCarritoBtn" class="btn btn-outline-primary">Ver carrito</button>
+        <button id="mostrarHistorialBtn" class="btn btn-outline-info">Ver historial</button>
+        <button id="mostrarEstadisticasBtn" class="btn btn-outline-success" style="display: none;">Estadísticas</button>
         <button id="logoutBtn" class="btn btn-outline-danger">Cerrar sesión</button>
       </div>
 
       <div class="mt-4 text-center">
         <h4 class="text-primary">Visítanos</h4>
-        <div id="map" style="margin-top:20px;"></div>
-      </div>
-
-      <!-- Historial del usuario -->
-      <div class="mt-5">
-        <h4>Mis compras</h4>
-        <table class="table table-sm">
-          <thead><tr><th># Venta</th><th>Fecha</th><th>Total</th><th></th></tr></thead>
-          <tbody id="tablaHistorial"></tbody>
-        </table>
-      </div>
-
-      <!-- Gráfico admin -->
-      <div id="adminPanel" class="mt-5" style="display:none;">
-        <h4>Ventas por día</h4>
-        <div class="d-flex gap-2 mb-2">
-          <input type="date" id="desde" class="form-control" style="max-width:200px;">
-          <input type="date" id="hasta" class="form-control" style="max-width:200px;">
-          <button id="btnGrafica" class="btn btn-outline-secondary">Actualizar</button>
-        </div>
-        <canvas id="ventasPorDia" height="120"></canvas>
+        <div id="map" style="height: 400px; width: 100%; margin-top:20px; display:none;"></div>
       </div>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    let esAdmin = false;
+    let chartPanes, chartClientes, chartIngresos;
 
+    const form = document.getElementById('panForm');
+    const galeria = document.getElementById('galeria');
+    const imagenFile = document.getElementById('imagenFile');
+    const imagenBase64 = document.getElementById('imagenBase64');
+
+    imagenFile.addEventListener('change', () => {
+      const file = imagenFile.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = reader.result.split(',')[1];
+          imagenBase64.value = base64;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const nombre = document.getElementById('nombrePan').value.trim();
+      const precio = parseFloat(document.getElementById('precio').value);
+      const imagen = imagenBase64.value;
+      if (!nombre || isNaN(precio) || !imagen) {
+        alert('Nombre, precio e imagen son obligatorios');
+        return;
+      }
+
+      const pan = {
+        nombre,
+        descripcion: document.getElementById('descripcion').value,
+        precio,
+        imagen
+      };
+
+      const id = document.getElementById('panId').value;
+      const method = id ? 'PUT' : 'POST';
+      const url = id ? `/inventario/${id}` : '/inventario';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pan)
+      });
+
+      if (res.ok) {
+        form.reset();
+        document.getElementById('panId').value = '';
+        imagenBase64.value = '';
+        cargarPanes();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Error en el servidor');
+      }
+    });
+
+    async function cargarPanes() {
+      const res = await fetch('/inventario');
+      if (!res.ok) return;
+      const panes = await res.json();
+      galeria.innerHTML = '';
+      panes.forEach(pan => {
+        galeria.innerHTML += `
+          <div class="col-md-4 mb-3">
+            <div class="card pan-card">
+              <img src="data:image/jpeg;base64,${pan.imagen}" class="card-img-top" alt="${pan.nombre}">
+              <div class="card-body">
+                <h5 class="card-title">${pan.nombre}</h5>
+                <p class="card-text">${pan.descripcion}</p>
+                <p class="text-success">$${pan.precio}</p>
+                ${esAdmin ? `
+                  <button class="btn btn-warning btn-sm" onclick="editarPan(${pan.id})">Editar</button>
+                  <button class="btn btn-danger btn-sm" onclick="eliminarPan(${pan.id})">Eliminar</button>
+                ` : ''}
+                <button class="btn btn-primary btn-sm" onclick="agregarAlCarrito(${pan.id})">Agregar al carrito</button>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    async function editarPan(id) {
+      const res = await fetch(`/inventario`);
+      const panes = await res.json();
+      const pan = panes.find(p => p.id === id);
+      if (pan) {
+        document.getElementById('nombrePan').value = pan.nombre;
+        document.getElementById('descripcion').value = pan.descripcion;
+        document.getElementById('precio').value = pan.precio;
+        document.getElementById('panId').value = pan.id;
+        imagenBase64.value = pan.imagen;
+      }
+    }
+
+    async function eliminarPan(id) {
+      if (confirm('¿Eliminar este pan?')) {
+        await fetch(`/inventario/${id}`, { method: 'DELETE' });
+        cargarPanes();
+      }
+    }
+
+    async function agregarAlCarrito(producto_id) {
+      await fetch('/carrito/agregar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ producto_id, cantidad: 1 })
+      });
+      cargarCarrito();
+    }
+
+    async function cargarCarrito() {
+      const res = await fetch('/carrito');
+      if (!res.ok) return;
+      const carrito = await res.json();
+      const tbody = document.querySelector('#tablaCarrito tbody');
+      tbody.innerHTML = '';
+
+      carrito.forEach(item => {
+        const fila = document.createElement('tr');
+        fila.innerHTML = `
+          <td>${item.nombre}</td>
+          <td>$${item.precio}</td>
+          <td>${item.cantidad}</td>
+          <td>$${(item.precio * item.cantidad).toFixed(2)}</td>
+          <td><button class="btn btn-danger btn-sm" onclick="eliminarDelCarrito(${item.id})">Eliminar</button></td>
+        `;
+        tbody.appendChild(fila);
+      });
+
+      const totalRes = await fetch('/carrito/total');
+      const { total } = await totalRes.json();
+      document.getElementById('totalCarrito').textContent = `Total: $${total.toFixed(2)}`;
+    }
+
+    async function eliminarDelCarrito(id) {
+      await fetch(`/carrito/${id}`, { method: 'DELETE' });
+      cargarCarrito();
+    }
+
+async function cargarHistorial() {
+  const res = await fetch('/historial', { credentials: 'include' });
+  if (!res.ok) return;
+
+  const tickets = await res.json();
+  const cont = document.getElementById('historialContenido');
+
+  if (tickets.length === 0) {
+    cont.innerHTML = '<p class="text-center">No tienes compras registradas</p>';
+    return;
+  }
+
+  let html = '';
+
+  tickets.forEach(ticket => {
+    html += `
+      <div class="ticket mb-4">
+        <h5>Ticket #${ticket.id}</h5>
+        <p>${new Date(ticket.fecha).toLocaleString('es-MX')}</p>
+    `;
+
+    ticket.items.forEach(item => {
+      html += `
+        <div class="ticket-item">
+          <span>${item.nombre} x${item.cantidad}</span>
+          <span>$${Number(item.subtotal).toFixed(2)}</span>
+        </div>
+      `;
+    });
+
+    html += `
+        <div class="ticket-total">
+          Total: $${Number(ticket.total).toFixed(2)}
+        </div>
+      </div>
+    `;
+  });
+
+  cont.innerHTML = html;
+}
+
+    async function cargarEstadisticas() {
+      // Panes más vendidos
+      const resPanes = await fetch('/estadisticas/panes-mas-vendidos');
+      const panes = await resPanes.json();
+      
+      if (chartPanes) chartPanes.destroy();
+      chartPanes = new Chart(document.getElementById('chartPanes'), {
+        type: 'bar',
+        data: {
+          labels: panes.map(p => p.nombre),
+          datasets: [{
+            label: 'Cantidad vendida',
+            data: panes.map(p => p.total_vendido),
+            backgroundColor: '#ff6b6b'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true
+        }
+      });
+
+      // Mejores clientes
+      const resClientes = await fetch('/estadisticas/mejores-clientes');
+      const clientes = await resClientes.json();
+      
+      if (chartClientes) chartClientes.destroy();
+      chartClientes = new Chart(document.getElementById('chartClientes'), {
+        type: 'pie',
+        data: {
+          labels: clientes.map(c => c.nombre),
+          datasets: [{
+            label: 'Total gastado',
+            data: clientes.map(c => c.total_gastado),
+            backgroundColor: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true
+        }
+      });
+
+      // Ingresos
+      const resIngresos = await fetch('/estadisticas/ingresos');
+      const ingresos = await resIngresos.json();
+      
+      if (chartIngresos) chartIngresos.destroy();
+      chartIngresos = new Chart(document.getElementById('chartIngresos'), {
+        type: 'line',
+        data: {
+          labels: ingresos.map(i => {
+            const fecha = new Date(i.fecha);
+            return fecha.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit' });
+          }),
+          datasets: [{
+            label: 'Ingresos ($)',
+            data: ingresos.map(i => i.ingresos),
+            borderColor: '#2ecc71',
+            backgroundColor: 'rgba(46, 204, 113, 0.1)',
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true
+        }
+      });
+    }
+
+document.getElementById('registroBtn').addEventListener('click', async () => {
+  const nombre = document.getElementById('nombre').value;
+  const correo = document.getElementById('correo').value;
+  const password = document.getElementById('password').value;
+
+  if (!nombre || !correo || !password) {
+    alert('Todos los campos son obligatorios');
+    return;
+  }
+
+  const res = await fetch('/registro', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  credentials: 'include',
+  body: JSON.stringify({
+    nombre,
+    correo,
+    password
+  })
+});
+
+  const data = await res.json();
+  alert(data.mensaje || data.error);
+});
+
+
+document.getElementById('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+
+  const correo = document.getElementById('correo').value;
+  const password = document.getElementById('password').value;
+
+  const res = await fetch('/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ correo, password })
+  });
+
+if (res.ok) {
+  const data = await res.json();
+  mostrarPanaderia(data.rol === 'admin');
+}else {
+    const error = await res.json();
+    alert(error.error);
+  }
+});
+
+    function mostrarPanaderia(admin) {
+      esAdmin = admin;
+      document.getElementById('auth').style.display = 'none';
+      document.getElementById('panaderia').style.display = 'block';
+      document.getElementById('logoutBtn').style.display = 'inline-block';
+      document.getElementById('panForm').style.display = esAdmin ? 'flex' : 'none';
+
+      document.getElementById('mostrarCarritoBtn').style.display = esAdmin ? 'none' : 'inline-block';
+      document.getElementById('mostrarHistorialBtn').style.display = esAdmin ? 'none' : 'inline-block';
+      document.getElementById('mostrarEstadisticasBtn').style.display = esAdmin ? 'inline-block' : 'none';
+      
+      document.getElementById('carritoSeccion').style.display = 'none';
+      document.getElementById('historialSeccion').style.display = 'none';
+      document.getElementById('estadisticasSeccion').style.display = 'none';
+
+      cargarPanes();
+      cargarSaldo();
+
+      const mapDiv = document.getElementById('map');
+      mapDiv.style.display = 'block';
+      initMapa();
+      setTimeout(refrescarMapaSiOculto, 100);
+    }
+
+    document.getElementById('mostrarCarritoBtn').addEventListener('click', () => {
+      document.getElementById('carritoSeccion').style.display = 'block';
+      document.getElementById('historialSeccion').style.display = 'none';
+      cargarCarrito();
+    });
+
+    document.getElementById('mostrarHistorialBtn').addEventListener('click', () => {
+      document.getElementById('historialSeccion').style.display = 'block';
+      document.getElementById('carritoSeccion').style.display = 'none';
+      cargarHistorial();
+    });
+
+    document.getElementById('mostrarEstadisticasBtn').addEventListener('click', () => {
+      document.getElementById('estadisticasSeccion').style.display = 'block';
+      document.getElementById('carritoSeccion').style.display = 'none';
+      document.getElementById('historialSeccion').style.display = 'none';
+      cargarEstadisticas();
+    });
+
+document.getElementById('pagarCarritoBtn').addEventListener('click', async () => {
+  if (!confirm('¿Confirmas el pago del carrito?')) return;
+
+  try {
+    // Pagar carrito (backend crea ticket y lo guarda)
+    const res = await fetch('/carrito/pagar', {
+      method: 'PUT',
+      credentials: 'include'
+    });
+
+    if (!res.ok) {
+      alert('Error al procesar el pago');
+      return;
+    }
+
+    const data = await res.json();
+
+    //Mostrar ticket
+    if (data.ticket) {
+      mostrarTicket(data.ticket);
+    }
+
+    //Actualizar historial
+    await cargarHistorial();
+
+    //Actualizar carrito (vacío)
+    await cargarCarrito();
+
+    await cargarSaldo();
+
+    alert(data.mensaje || 'Compra realizada con éxito');
+
+  } catch (err) {
+    console.error(err);
+    alert('Error inesperado al pagar');
+  }
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  if (!confirm('¿Seguro que deseas cerrar sesión?')) return;
+
+  try {
+    const res = await fetch('/logout', {
+      method: 'POST',
+      credentials: 'include'
+    });
+
+    if (!res.ok) {
+      alert('Error al cerrar sesión');
+      return;
+    }
+
+    // Resetear UI
+    ocultarPanaderia();
+
+    alert('Sesión cerrada correctamente');
+
+  } catch (err) {
+    console.error(err);
+    alert('Error inesperado al cerrar sesión');
+  }
+});
+
+
+    function ocultarPanaderia() {
+      esAdmin = false;
+      document.getElementById('auth').style.display = 'block';
+      document.getElementById('panaderia').style.display = 'none';
+      document.getElementById('logoutBtn').style.display = 'none';
+      document.getElementById('map').style.display = 'none';
+    }
+
+function mostrarTicket(ticket) {
+  document.getElementById('ticketFecha').textContent = ticket.fecha;
+  document.getElementById('ticketTotal').textContent =
+    `$${Number(ticket.total).toFixed(2)}`;
+
+  let itemsHtml = '';
+
+  ticket.items.forEach(item => {
+    const subtotal = Number(item.subtotal);
+
+    itemsHtml += `
+      <div class="ticket-item">
+        <span>${item.nombre} x${item.cantidad}</span>
+        <span>$${subtotal.toFixed(2)}</span>
+      </div>
+    `;
+  });
+
+  document.getElementById('ticketItems').innerHTML = itemsHtml;
+  document.getElementById('ticketSeccion').style.display = 'block';
+}
+
+  async function verificarSesion() {
+    const res = await fetch('/sesion', { credentials: 'include' });
+
+    if (res.ok) {
+      const data = await res.json();
+      mostrarPanaderia(data.esAdmin);
+    } else {
+      ocultarPanaderia();
+    }
+  }
+
+    verificarSesion();
+
+async function cargarSaldo() {
+  const res = await fetch('/saldo', { credentials: 'include' });
+  if (!res.ok) return;
+  const data = await res.json();
+  document.getElementById('saldoUsuario').textContent =
+    `$${data.saldo.toFixed(2)}`;
+}
+
+async function agregarSaldo() {
+  const monto = parseFloat(prompt('¿Cuánto saldo deseas agregar? (Máx $1,000,000)'));
+  if (!monto || monto <= 0) return;
+
+  const res = await fetch('/saldo/agregar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ monto })
+  });
+
+  const data = await res.json();
+  alert(data.mensaje || data.error);
+  cargarSaldo();
+}
+
+    let mapInstance = null;
+
+    function initMapa() {
+      const mapContainer = document.getElementById('map');
+      if (!mapContainer) return;
+
+      if (mapInstance) return;
+
+      const coords = [19.37529627463763, -99.15366546551034];
+      mapInstance = L.map('map');
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(mapInstance);
+
+      mapInstance.setView(coords, 15);
+
+      L.marker(coords).addTo(mapInstance)
+        .bindPopup('Panadería La Desesperanza')
+        .openPopup();
+    }
+
+    function refrescarMapaSiOculto() {
+      if (mapInstance) {
+        setTimeout(() => {
+          mapInstance.invalidateSize();
+        }, 50);
+      }
+    }
+
+    function cerrarTicket() {
+      document.getElementById('ticketSeccion').style.display = 'none';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initMapa();
+      refrescarMapaSiOculto();
+    });
+
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
 
